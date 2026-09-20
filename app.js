@@ -147,7 +147,7 @@ function ckDraw(){
   $('#ck-fine').hidden=ckMode!=='m';
   const cx=130,cy=130;let h='<circle cx="130" cy="130" r="124" class="ck-bg"/>';
   if(ckMode==='h'){
-    const outer=[13,14,15,16,17,18,19,20,21,22,23,0],inner=[1,2,3,4,5,6,7,8,9,10,11,12];
+    const outer=[0,13,14,15,16,17,18,19,20,21,22,23],inner=[12,1,2,3,4,5,6,7,8,9,10,11];
     for(let i=0;i<12;i++){
       const a=(i/12)*Math.PI*2-Math.PI/2;
       h+=ckNum(cx+Math.cos(a)*96,cy+Math.sin(a)*96,outer[i],ckH===outer[i]);
