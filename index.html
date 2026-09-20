@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ro" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pontaj Săptămânal</title>
+<meta name="description" content="Pontaj săptămânal Luni–Duminică, calcul automat, offline, instalabil pe Android.">
+<meta name="theme-color" content="#0f172a" id="meta-theme">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo">📅</span><div><h1>Pontaj</h1><p id="week-label">Săptămâna</p></div></div>
+  <div class="top-actions">
+    <button id="btn-install" class="btn ghost" hidden>📲 Instalează</button>
+    <button id="btn-theme" class="btn ghost" aria-label="Dark mode">🌙</button>
+  </div>
+</header>
+
+<main>
+  <section class="week-nav card">
+    <button id="btn-prev" class="btn">‹</button>
+    <div class="week-nav-mid">
+      <strong id="week-range">–</strong>
+      <div class="week-nav-sub"><button id="btn-today" class="link">Săptămâna curentă</button><span id="save-dot" class="save-dot">● salvat</span></div>
+    </div>
+    <button id="btn-next" class="btn">›</button>
+  </section>
+
+  <section class="total card highlight">
+    <div><span class="lbl">Total săptămânal</span><strong id="total-dec">0,00 h</strong><span id="total-hm" class="muted">0:00 • 0 zile</span></div>
+    <div class="total-actions">
+      <button id="btn-print" class="btn primary">📄 Export / PDF</button>
+    </div>
+  </section>
+
+  
+
+  
+
+  <section id="days" class="days"></section>
+
+  <section class="card row-actions">
+    <button id="btn-copy-weekdays" class="btn small">🧮 Copiază Luni → Mar–Vin</button>
+    <button id="btn-clear" class="btn small danger-ghost">🗑️ Șterge săptămâna</button>
+  </section>
+
+  <section class="card">
+    <h2>🗂️ Istoric săptămâni</h2>
+    <p class="muted small">Salvare automată pe telefon (offline). Atinge o săptămână pentru a o deschide.</p>
+    <ul id="history" class="history"></ul>
+  </section>
+
+  <p class="muted small center">💾 Totul rămâne pe telefon • 📶 Funcționează offline după prima deschidere<br>8 ore 30 min → <b>8,50 h</b></p>
+</main>
+
+<section class="card" id="instalare-ajutor">
+    <h2>📲 Instalare pe Android</h2>
+    <p class="muted small">1. Deschide linkul HTTPS în <b>Chrome</b> (nu din Facebook/WhatsApp viewer).<br>2. Meniu ⋮ → <b>Adaugă pe ecranul de pornire</b> / <b>Instalează aplicația</b>.<br>3. Dacă nu apare, folosește butonul 📲 Instalează de sus.</p>
+  </section>
+<div id="print-area"></div>
+
+<script src="app.js" defer></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));
+}
+</script>
+</body>
+</html>
