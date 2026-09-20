@@ -27,3 +27,22 @@ main{max-width:640px;margin:0 auto;padding:12px;display:grid;gap:12px}
 @media(max-width:420px){.grid3{grid-template-columns:1fr 1fr 1fr}input{font-size:16px}}
 @media(max-width:360px){.grid3{grid-template-columns:1fr 1fr}input{padding:10px 6px}}
 
+
+#dlg-clock{border:1px solid var(--line);border-radius:20px;background:var(--bg2);color:var(--text);padding:18px 14px;width:min(94vw,340px)}
+#dlg-clock::backdrop{background:rgba(0,0,0,.6)}
+.ck-disp{display:flex;justify-content:center;align-items:center;gap:2px;font-size:44px;font-weight:800;margin-bottom:6px}
+.ck-num{background:none;border:none;color:var(--muted);font-size:44px;font-weight:800;cursor:pointer;padding:0 4px}
+.ck-num.on{color:var(--acc)}
+#ck-face{display:block;margin:0 auto;max-width:100%;height:auto}
+.ck-bg{fill:var(--bg)}
+.ck-tap{cursor:pointer}
+.ck-tap circle{fill:transparent}
+.ck-tap text{fill:var(--text);font-size:15px}
+.ck-tap .ck-sel{fill:var(--acc)}
+.ck-selt{fill:#06283a!important;font-weight:800}
+.ck-hand{stroke:var(--acc);stroke-width:3}
+.ck-handdot{fill:var(--acc)}
+.ck-btns{display:flex;gap:6px;margin-top:12px}
+.ck-btns .btn{flex:1;min-width:0;white-space:nowrap;padding:9px 4px;font-size:13px}
+.ck-fine{justify-content:center;margin-top:10px}
+.clock-in{cursor:pointer}

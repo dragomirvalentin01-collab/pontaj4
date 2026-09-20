@@ -34,13 +34,14 @@ function render(){
     const card=document.createElement('div');card.className='day'+(dt.toDateString()===todayStr?' today':'');
     card.innerHTML=`<div class="day-head"><div><b>${DAYS[i]}</b> <span>${fmtDate(dt)}</span></div><span class="day-total"></span></div>
     <div class="grid3">
-      <label>🕐 Început<input type="time" class="in-s" value="${v.s||''}"></label>
+      <label>🕐 Început<input type="text" inputmode="none" readonly placeholder="--:--" class="in-s" value="${v.s||''}"></label>
       <label>⏸️ Pauză (min)<input type="number" class="in-p" min="0" max="600" step="5" inputmode="numeric" value="${v.p||''}" placeholder="30"></label>
-      <label>🏁 Sfârșit<input type="time" class="in-e" value="${v.e||''}"></label>
+      <label>🏁 Sfârșit<input type="text" inputmode="none" readonly placeholder="--:--" class="in-e" value="${v.e||''}"></label>
     </div><div class="chips">${[0,15,30,45,60].map(x=>`<button class="chip" data-p="${x}">${x}</button>`).join('')}</div>`;
     daysEl.appendChild(card);
   }
   daysEl.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',()=>{recalc();saveWeek();}));
+  daysEl.querySelectorAll('.in-s,.in-e').forEach(inp=>inp.addEventListener('click',()=>openClock(inp)));
   daysEl.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',ev=>{ev.preventDefault();const card=c.closest('.day');card.querySelector('.in-p').value=c.dataset.p;recalc();saveWeek();}));
   recalc();renderHistory();
 }
@@ -118,5 +119,65 @@ setTheme(localStorage.getItem('pontaj:theme')||(matchMedia('(prefers-color-schem
 // install
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('#btn-install').hidden=false;});
 $('#btn-install').onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('#btn-install').hidden=true;};
+
+
+// ---------- ceas propriu (rotund, 24h) ----------
+let ckTarget=null,ckH=8,ckM=0,ckMode='h';
+const ckPad=n=>String(n).padStart(2,'0');
+function openClock(inp){
+  ckTarget=inp;
+  const m=(inp.value||'').match(/^(\d{1,2}):(\d{2})$/);
+  const now=new Date();
+  ckH=m?Math.min(23,+m[1]):now.getHours();
+  ckM=m?Math.min(59,+m[2]):(Math.round(now.getMinutes()/5)*5)%60;
+  ckMode='h';ckDraw();
+  const d=$('#dlg-clock');if(d&&typeof d.showModal==='function')d.showModal();
+}
+function ckNum(x,y,label,sel){
+  return `<g class="ck-tap" data-v="${label}"><circle cx="${x}" cy="${y}" r="17" class="${sel?'ck-sel':''}"/><text x="${x}" y="${y+5}" text-anchor="middle" class="${sel?'ck-selt':''}">${label}</text></g>`;
+}
+function ckHand(ang,r){
+  const x2=130+Math.cos(ang)*r,y2=130+Math.sin(ang)*r;
+  return `<line x1="130" y1="130" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" class="ck-hand"/><circle cx="130" cy="130" r="5" class="ck-handdot"/>`;
+}
+function ckDraw(){
+  $('#ck-h').textContent=ckPad(ckH);$('#ck-m').textContent=ckPad(ckM);
+  $('#ck-h').classList.toggle('on',ckMode==='h');
+  $('#ck-m').classList.toggle('on',ckMode==='m');
+  $('#ck-fine').hidden=ckMode!=='m';
+  const cx=130,cy=130;let h='<circle cx="130" cy="130" r="124" class="ck-bg"/>';
+  if(ckMode==='h'){
+    const outer=[13,14,15,16,17,18,19,20,21,22,23,0],inner=[1,2,3,4,5,6,7,8,9,10,11,12];
+    for(let i=0;i<12;i++){
+      const a=(i/12)*Math.PI*2-Math.PI/2;
+      h+=ckNum(cx+Math.cos(a)*96,cy+Math.sin(a)*96,outer[i],ckH===outer[i]);
+      h+=ckNum(cx+Math.cos(a)*58,cy+Math.sin(a)*58,inner[i],ckH===inner[i]);
+    }
+    const oi=outer.indexOf(ckH),inr=oi<0;
+    const pos=inr?inner.indexOf(ckH):oi;
+    h+=ckHand((pos/12)*Math.PI*2-Math.PI/2,inr?58:96);
+  }else{
+    for(let i=0;i<12;i++){
+      const a=(i/12)*Math.PI*2-Math.PI/2;
+      h+=ckNum(cx+Math.cos(a)*96,cy+Math.sin(a)*96,ckPad(i*5),ckM===i*5);
+    }
+    h+=ckHand((ckM/60)*Math.PI*2-Math.PI/2,96);
+  }
+  $('#ck-face').innerHTML=h;
+}
+$('#ck-face').addEventListener('click',ev=>{
+  const g=ev.target.closest('.ck-tap');if(!g)return;
+  const v=g.dataset.v;
+  if(ckMode==='h'){ckH=(+v)%24;ckMode='m';}
+  else{ckM=(+v)%60;}
+  ckDraw();
+});
+$('#ck-h').onclick=()=>{ckMode='h';ckDraw();};
+$('#ck-m').onclick=()=>{ckMode='m';ckDraw();};
+$('#ck-dec').onclick=()=>{ckM=(ckM+59)%60;ckDraw();};
+$('#ck-inc').onclick=()=>{ckM=(ckM+1)%60;ckDraw();};
+$('#ck-cancel').onclick=()=>$('#dlg-clock').close();
+$('#ck-clear').onclick=()=>{if(ckTarget){ckTarget.value='';ckTarget.dispatchEvent(new Event('input',{bubbles:true}));}$('#dlg-clock').close();};
+$('#ck-ok').onclick=()=>{if(ckTarget){ckTarget.value=ckPad(ckH)+':'+ckPad(ckM);ckTarget.dispatchEvent(new Event('input',{bubbles:true}));}$('#dlg-clock').close();};
 
 render();
