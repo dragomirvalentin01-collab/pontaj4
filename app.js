@@ -74,6 +74,34 @@ $('#btn-next').onclick=()=>{monday.setDate(monday.getDate()+7);render();};
 $('#btn-today').onclick=()=>{monday=getMonday(new Date());render();};
 $('#btn-clear').onclick=()=>{if(!confirm('Ștergi toate orele din săptămâna afișată?'))return;localStorage.removeItem('pontaj:'+weekKey(monday));render();};
 $('#btn-copy-weekdays').onclick=()=>{const f=document.querySelectorAll('.day')[0];const s=f.querySelector('.in-s').value,p=f.querySelector('.in-p').value,e=f.querySelector('.in-e').value;document.querySelectorAll('.day').forEach((c,i)=>{if(i>=1&&i<=4){c.querySelector('.in-s').value=s;c.querySelector('.in-p').value=p;c.querySelector('.in-e').value=e;}});recalc();saveWeek();};
+$('#btn-export').onclick=()=>{
+  const data={};
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf('pontaj:')===0){try{data[k]=JSON.parse(localStorage.getItem(k));}catch{data[k]=localStorage.getItem(k);}}}
+  data._exportedAt=new Date().toISOString();data._app='pontaj';
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  const d=new Date();const stamp=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  a.download='pontaj-backup-'+stamp+'.json';document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
+};
+$('#btn-import').onclick=()=>$('#file-import').click();
+$('#file-import').onchange=(ev)=>{
+  const f=ev.target.files&&ev.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const data=JSON.parse(rd.result);
+      if(!data||typeof data!=='object')throw new Error('bad');
+      const keys=Object.keys(data).filter(k=>k.indexOf('pontaj:')===0);
+      if(!keys.length){alert('Fișierul nu conține backup de pontaj.');return;}
+      if(!confirm('Import '+keys.length+' intrări? Datele existente cu aceeași cheie se suprascriu.'))return;
+      keys.forEach(k=>localStorage.setItem(k,JSON.stringify(data[k])));
+      render();alert('Import gata: '+keys.length+' intrări.');
+    }catch{alert('Fișier invalid. Alege un JSON exportat din Pontaj.');}
+    ev.target.value='';
+  };
+  rd.readAsText(f);
+};
 $('#btn-print').onclick=()=>{
   const m=new Date(monday);let rows='',tot=0;
   for(let i=0;i<7;i++){const card=document.querySelectorAll('.day')[i];const s=card.querySelector('.in-s').value||'—',p=card.querySelector('.in-p').value||'0',e=card.querySelector('.in-e').value||'—';const min=calcDay(card.querySelector('.in-s').value,card.querySelector('.in-p').value,card.querySelector('.in-e').value);tot+=min;const dt=new Date(m);dt.setDate(dt.getDate()+i);

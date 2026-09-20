@@ -9,7 +9,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
 <header class="topbar">
@@ -48,6 +48,12 @@
     <button id="btn-clear" class="btn small danger-ghost">🗑️ Șterge săptămâna</button>
   </section>
 
+  <section class="card row-actions">
+    <button id="btn-export" class="btn small">💾 Export backup (JSON)</button>
+    <button id="btn-import" class="btn small">📥 Import backup</button>
+    <input id="file-import" type="file" accept="application/json,.json" hidden>
+  </section>
+
   <section class="card">
     <h2>🗂️ Istoric săptămâni</h2>
     <p class="muted small">Salvare automată pe telefon (offline). Atinge o săptămână pentru a o deschide.</p>
@@ -63,7 +69,7 @@
   </section>
 <div id="print-area"></div>
 
-<script src="app.js" defer></script>
+<script src="app.js?v=5" defer></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));
