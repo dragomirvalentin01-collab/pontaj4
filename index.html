@@ -9,73 +9,78 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="styles.css?v=9">
+<link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><span class="logo">📅</span><div><h1>Pontaj</h1><p id="week-label">Săptămâna</p></div></div>
+  <div class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><div><h1>Pontaj</h1><p id="week-label">Săptămâna</p></div></div>
   <div class="top-actions">
-    <button id="btn-install" class="btn ghost" hidden>📲 Instalează</button>
-    <button id="btn-theme" class="btn ghost" aria-label="Dark mode">🌙</button>
+    <button id="btn-install" class="btn ghost" hidden>Instalează</button>
+    <button id="btn-theme" class="btn ghost icon" aria-label="Comută tema">L</button>
   </div>
 </header>
 
 <main>
-  <section class="week-nav card">
-    <button id="btn-prev" class="btn">‹</button>
+  <section class="week-nav card" aria-label="Navigare săptămâni">
+    <button id="btn-prev" class="btn icon" aria-label="Săptămâna anterioară"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="week-nav-mid">
       <strong id="week-range">–</strong>
-      <div class="week-nav-sub"><button id="btn-today" class="link">Săptămâna curentă</button><span id="save-dot" class="save-dot">● salvat</span></div>
+      <div class="week-nav-sub"><button id="btn-today" class="link">Săptămâna curentă</button><span id="save-dot" class="save-dot" role="status">● salvat</span></div>
     </div>
-    <button id="btn-next" class="btn">›</button>
+    <button id="btn-next" class="btn icon" aria-label="Săptămâna următoare"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></button>
   </section>
 
-  <section class="total card highlight">
+  <section class="total card highlight" aria-live="polite">
     <div><span class="lbl">Total săptămânal</span><strong id="total-dec">0,00 h</strong><span id="total-hm" class="muted">0:00 • 0 zile</span></div>
     <div class="total-actions">
-      <button id="btn-print" class="btn primary">📄 Export / PDF</button>
+      <button id="btn-print" class="btn primary">Export / PDF</button>
     </div>
   </section>
 
-  
+  <section aria-labelledby="days-h">
+    <h2 id="days-h" class="vh">Zilele săptămânii</h2>
+    <div id="days" class="days"></div>
+  </section>
 
-  
-
-  <section id="days" class="days"></section>
-
-  <section class="card row-actions">
-    <button id="btn-copy-weekdays" class="btn small">🧮 Copiază Luni → Mar–Vin</button>
-    <button id="btn-clear" class="btn small danger-ghost">🗑️ Șterge săptămâna</button>
+  <section class="card row-actions" aria-label="Acțiuni săptămână">
+    <button id="btn-copy-weekdays" class="btn small">Copiază Luni → Mar–Vin</button>
   </section>
 
   <section class="card row-actions">
-    <button id="btn-export" class="btn small">💾 Export backup (JSON)</button>
-    <button id="btn-import" class="btn small">📥 Import backup</button>
+    <button id="btn-export" class="btn small">Export backup (JSON)</button>
+    <button id="btn-import" class="btn small">Import backup</button>
     <input id="file-import" type="file" accept="application/json,.json" hidden>
   </section>
 
   <section class="card">
-    <h2>🗂️ Istoric săptămâni</h2>
+    <h2>Istoric săptămâni</h2>
     <p class="muted small">Salvare automată pe telefon (offline). Atinge o săptămână pentru a o deschide.</p>
     <ul id="history" class="history"></ul>
   </section>
 
-  <p class="muted small center">💾 Totul rămâne pe telefon • 📶 Funcționează offline după prima deschidere<br>8 ore 30 min → <b>8,50 h</b></p>
+  <section class="card danger-zone" aria-label="Zonă periculoasă">
+    <h2>Zonă periculoasă</h2>
+    <p class="muted small">Șterge definitiv toate orele din săptămâna afișată. Acțiunea nu poate fi anulată.</p>
+    <button id="btn-clear" class="btn small danger">Șterge săptămâna afișată</button>
+  </section>
+
+  <section class="card" id="instalare-ajutor">
+    <h2>Instalare pe Android</h2>
+    <p class="muted small">1. Deschide linkul HTTPS în <b>Chrome</b> (nu din Facebook/WhatsApp viewer).<br>2. Meniu ⋮ → <b>Adaugă pe ecranul de pornire</b> / <b>Instalează aplicația</b>.<br>3. Dacă nu apare, folosește butonul Instalează de sus.</p>
+  </section>
+
+  <p class="muted small center">Totul rămâne pe telefon • Funcționează offline după prima deschidere<br>8 ore 30 min → <b>8,50 h</b></p>
 </main>
 
-<section class="card" id="instalare-ajutor">
-    <h2>📲 Instalare pe Android</h2>
-    <p class="muted small">1. Deschide linkul HTTPS în <b>Chrome</b> (nu din Facebook/WhatsApp viewer).<br>2. Meniu ⋮ → <b>Adaugă pe ecranul de pornire</b> / <b>Instalează aplicația</b>.<br>3. Dacă nu apare, folosește butonul 📲 Instalează de sus.</p>
-  </section>
-<dialog id="dlg-clock">
-  <div class="ck-disp"><button id="ck-h" class="ck-num">08</button><span>:</span><button id="ck-m" class="ck-num">00</button></div>
-  <svg id="ck-face" viewBox="0 0 260 260" width="260" height="260" role="img" aria-label="Alege ora"></svg>
+<dialog id="dlg-clock" aria-label="Alege ora">
+  <div class="ck-disp"><button id="ck-h" class="ck-num" aria-label="Alege ora">08</button><span aria-hidden="true">:</span><button id="ck-m" class="ck-num" aria-label="Alege minutul">00</button></div>
+  <svg id="ck-face" viewBox="0 0 260 260" width="260" height="260" role="group" aria-label="Alege ora din ceas"></svg>
   <div class="row wrap ck-fine" id="ck-fine" hidden><button id="ck-dec" class="btn small">−1 min</button><button id="ck-inc" class="btn small">+1 min</button></div>
   <div class="ck-btns"><button id="ck-clear" class="btn small">Șterge</button><button id="ck-cancel" class="btn small">Anulează</button><button id="ck-ok" class="btn small primary">Setează</button></div>
 </dialog>
 <div id="print-area"></div>
 
-<script src="app.js?v=9" defer></script>
+<script src="app.js?v=11" defer></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));

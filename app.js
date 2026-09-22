@@ -31,17 +31,20 @@ function render(){
   for(let i=0;i<7;i++){
     const dt=new Date(m);dt.setDate(dt.getDate()+i);
     const v=saved[i]||{s:'',p:'',e:''};
-    const card=document.createElement('div');card.className='day'+(dt.toDateString()===todayStr?' today':'');
-    card.innerHTML=`<div class="day-head"><div><b>${DAYS[i]}</b> <span>${fmtDate(dt)}</span></div><span class="day-total"></span></div>
+    const card=document.createElement('article');card.className='day'+(dt.toDateString()===todayStr?' today':'');
+    card.innerHTML=`<div class="day-head"><div><h3 class="day-name">${DAYS[i]}</h3> <span>${fmtDate(dt)}</span></div><span class="day-total"></span></div>
     <div class="grid3">
-      <label>🕐 Început<input type="text" inputmode="none" readonly placeholder="--:--" class="in-s" value="${v.s||''}"></label>
-      <label>⏸️ Pauză (min)<input type="number" class="in-p" min="0" max="600" step="5" inputmode="numeric" value="${v.p||''}" placeholder="30"></label>
-      <label>🏁 Sfârșit<input type="text" inputmode="none" readonly placeholder="--:--" class="in-e" value="${v.e||''}"></label>
-    </div><div class="chips">${[0,15,30,45,60].map(x=>`<button class="chip" data-p="${x}">${x}</button>`).join('')}</div>`;
+      <label>Început<input type="text" inputmode="none" readonly placeholder="--:--" class="in-s" aria-haspopup="dialog" aria-label="${DAYS[i]} început, atinge pentru a alege ora" value="${v.s||''}"></label>
+      <label>Pauză (min)<input type="number" class="in-p" aria-label="${DAYS[i]} pauză în minute" min="0" max="600" step="5" inputmode="numeric" value="${v.p||''}" placeholder="30"></label>
+      <label>Sfârșit<input type="text" inputmode="none" readonly placeholder="--:--" class="in-e" aria-haspopup="dialog" aria-label="${DAYS[i]} sfârșit, atinge pentru a alege ora" value="${v.e||''}"></label>
+    </div><p class="day-err" role="alert" hidden></p><div class="chips" role="group" aria-label="${DAYS[i]} pauză rapidă">${[0,15,30,45,60].map(x=>`<button type="button" class="chip" data-p="${x}">${x}</button>`).join('')}</div>`;
     daysEl.appendChild(card);
   }
   daysEl.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',()=>{recalc();saveWeek();}));
-  daysEl.querySelectorAll('.in-s,.in-e').forEach(inp=>inp.addEventListener('click',()=>openClock(inp)));
+  daysEl.querySelectorAll('.in-s,.in-e').forEach(inp=>{
+    inp.addEventListener('click',()=>openClock(inp));
+    inp.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();openClock(inp);}});
+  });
   daysEl.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',ev=>{ev.preventDefault();const card=c.closest('.day');card.querySelector('.in-p').value=c.dataset.p;recalc();saveWeek();}));
   recalc();renderHistory();
 }
@@ -52,7 +55,15 @@ function recalc(){
     const min=calcDay(s,p,e);total+=min;if(min>0)days++;
     const out=card.querySelector('.day-total');
     out.textContent=min>0?`${roDec(min/60)} (${hm(min)})`:'—';
-    card.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',String(p||'')===c.dataset.p));
+    const err=card.querySelector('.day-err');
+    const a=toMin(s),b=toMin(e);let dur=0;if(a!=null&&b!=null){dur=b-a;if(dur<0)dur+=24*60;}
+    const pv=parseInt(p||'0',10)||0;
+    if(err){
+      if(dur>0&&pv>=dur){err.hidden=false;err.textContent=`Pauza (${pv} min) depaseste durata (${hm(dur)}). Verifica orele.`;}
+      else if(p!==''&&(pv<0||pv>600)){err.hidden=false;err.textContent='Pauza trebuie sa fie intre 0 si 600 minute.';}
+      else{err.hidden=true;err.textContent='';}
+    }
+    card.querySelectorAll('.chip').forEach(c=>{const on=String(p||'')===c.dataset.p;c.classList.toggle('on',on);c.setAttribute('aria-pressed',on?'true':'false');});
   });
   $('#total-dec').textContent=roDec(total/60);
   $('#total-hm').textContent=`${hm(total)} • ${days} ${days===1?'zi':'zile'}`;
@@ -62,17 +73,23 @@ function renderHistory(){
   idx.slice(0,12).forEach(k=>{
     let tot=0;const d=loadWeek(k);Object.values(d).forEach(v=>tot+=calcDay(v.s,v.p,v.e));
     const li=document.createElement('li');
-    li.innerHTML=`<span><b>${k}</b><br><span class="muted">${roDec(tot/60)} • ${hm(tot)}</span></span><span><button class="btn small" data-open="${k}">Deschide</button> <button class="btn small" data-del="${k}">✕</button></span>`;
+    li.innerHTML=`<span><b>${k}</b><br><span class="muted">${roDec(tot/60)} • ${hm(tot)}</span></span><span><button class="btn small" data-open="${k}">Deschide</button> <button class="btn small" data-del="${k}" aria-label="Sterge saptamana ${k}">✕</button></span>`;
     histEl.appendChild(li);
   });
-  histEl.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{const[y,w]=b.dataset.open.split('-W');monday=mondayFromWeek(+y,+w);render();window.scrollTo({top:0,behavior:'smooth'});});
+  histEl.querySelectorAll('[data-open]').forEach(b=>{b.setAttribute('aria-label','Deschide saptamana '+b.dataset.open);b.onclick=()=>{const[y,w]=b.dataset.open.split('-W');monday=mondayFromWeek(+y,+w);render(true);scrollTop();};});
   histEl.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{if(!confirm('Ștergi '+b.dataset.del+'?'))return;localStorage.removeItem('pontaj:'+b.dataset.del);localStorage.setItem('pontaj:index',JSON.stringify(getIndex().filter(x=>x!==b.dataset.del)));renderHistory();});
 }
 function mondayFromWeek(y,w){const s=new Date(y,0,1+(w-1)*7);const d=getMonday(s);if(d.getFullYear()<y)d.setDate(d.getDate()+7);return d;}
 
-$('#btn-prev').onclick=()=>{monday.setDate(monday.getDate()-7);render();};
-$('#btn-next').onclick=()=>{monday.setDate(monday.getDate()+7);render();};
-$('#btn-today').onclick=()=>{monday=getMonday(new Date());render();};
+function scrollTop(){const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;window.scrollTo({top:0,behavior:reduce?'auto':'smooth'});}
+function syncWeekToURL(push){const k=weekKey(monday);const h='#s='+k;if(location.hash!==h){if(push)history.pushState({wk:k},'',h);else history.replaceState({wk:k},'',h);}}
+function readWeekFromURL(){const m=(location.hash||'').match(/#s=(\d{4})-W(\d{2})/);if(!m)return false;try{monday=mondayFromWeek(+m[1],+m[2]);return true;}catch{return false;}}
+const _render0=render;render=function(push){_render0();syncWeekToURL(push);};
+$('#btn-prev').onclick=()=>{monday.setDate(monday.getDate()-7);render(true);};
+$('#btn-next').onclick=()=>{monday.setDate(monday.getDate()+7);render(true);};
+$('#btn-today').onclick=()=>{monday=getMonday(new Date());render(true);};
+window.addEventListener('popstate',()=>{if(readWeekFromURL())_render0();});
+window.addEventListener('hashchange',()=>{if(readWeekFromURL())_render0();});
 $('#btn-clear').onclick=()=>{if(!confirm('Ștergi toate orele din săptămâna afișată?'))return;localStorage.removeItem('pontaj:'+weekKey(monday));render();};
 $('#btn-copy-weekdays').onclick=()=>{const f=document.querySelectorAll('.day')[0];const s=f.querySelector('.in-s').value,p=f.querySelector('.in-p').value,e=f.querySelector('.in-e').value;document.querySelectorAll('.day').forEach((c,i)=>{if(i>=1&&i<=4){c.querySelector('.in-s').value=s;c.querySelector('.in-p').value=p;c.querySelector('.in-e').value=e;}});recalc();saveWeek();};
 $('#btn-export').onclick=()=>{
@@ -107,12 +124,12 @@ $('#btn-print').onclick=()=>{
   const m=new Date(monday);let rows='',tot=0;
   for(let i=0;i<7;i++){const card=document.querySelectorAll('.day')[i];const s=card.querySelector('.in-s').value||'—',p=card.querySelector('.in-p').value||'0',e=card.querySelector('.in-e').value||'—';const min=calcDay(card.querySelector('.in-s').value,card.querySelector('.in-p').value,card.querySelector('.in-e').value);tot+=min;const dt=new Date(m);dt.setDate(dt.getDate()+i);
     rows+=`<tr><td>${DAYS[i]} ${fmtDate(dt)}</td><td>${s}</td><td>${p} min</td><td>${e}</td><td>${min>0?roDec(min/60)+' ('+hm(min)+')':'—'}</td></tr>`;}
-  $('#print-area').innerHTML=`<h1>Pontaj ${weekKey(monday)} — ${$('#week-range').textContent}</h1><p>Total: <b>${roDec(tot/60)} (${hm(tot)})</b></p><table><tr><th>Zi</th><th>Început</th><th>Pauză</th><th>Sfârșit</th><th>Total</th></tr>${rows}</table>`;
+  $('#print-area').innerHTML=`<h1>Pontaj ${weekKey(monday)} — ${$('#week-range').textContent}</h1><p>Total: <b>${roDec(tot/60)} (${hm(tot)})</b></p><table><caption>Saptamana ${weekKey(monday)}</caption><tr><th scope="col">Zi</th><th scope="col">Început</th><th scope="col">Pauză</th><th scope="col">Sfârșit</th><th scope="col">Total</th></tr>${rows}</table>`;
   window.print();
 };
 
 // theme
-function setTheme(t){document.documentElement.dataset.theme=t;localStorage.setItem('pontaj:theme',t);$('#btn-theme').textContent=t==='dark'?'🌙':'☀️';$('#meta-theme').content=t==='dark'?'#0f172a':'#ffffff';}
+function setTheme(t){document.documentElement.dataset.theme=t;localStorage.setItem('pontaj:theme',t);const ICON_MOON='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';const ICON_SUN='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';$('#btn-theme').innerHTML=t==='dark'?ICON_MOON:ICON_SUN;$('#btn-theme').setAttribute('aria-label',t==='dark'?'Comută pe tema deschisă':'Comută pe tema închisă');$('#meta-theme').content=t==='dark'?'#0f172a':'#ffffff';}
 $('#btn-theme').onclick=()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
 setTheme(localStorage.getItem('pontaj:theme')||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'));
 
@@ -131,10 +148,17 @@ function openClock(inp){
   ckH=m?Math.min(23,+m[1]):now.getHours();
   ckM=m?Math.min(59,+m[2]):(Math.round(now.getMinutes()/5)*5)%60;
   ckMode='h';ckDraw();
-  const d=$('#dlg-clock');if(d&&typeof d.showModal==='function')d.showModal();
+  const d=$('#dlg-clock');if(d&&typeof d.showModal==='function'){d.showModal();const f=d.querySelector('#ck-face .ck-tap[aria-pressed="true"]')||$('#ck-h');if(f)f.focus();}
+}
+function ckPick(v){
+  if(ckMode==='h'){ckH=(+v)%24;ckMode='m';}
+  else{ckM=(+v)%60;}
+  ckDraw();
+  const sel=document.querySelector('#ck-face .ck-tap[aria-pressed="true"]');
+  if(sel)sel.focus();
 }
 function ckNum(x,y,label,sel){
-  return `<g class="ck-tap" data-v="${label}"><circle cx="${x}" cy="${y}" r="17" class="${sel?'ck-sel':''}"/><text x="${x}" y="${y+5}" text-anchor="middle" class="${sel?'ck-selt':''}">${label}</text></g>`;
+  return `<g class="ck-tap" data-v="${label}" tabindex="0" role="button" aria-label="Alege ora ${label}" aria-pressed="${sel?'true':'false'}"><circle cx="${x}" cy="${y}" r="18" class="${sel?'ck-sel':''}"/><text x="${x}" y="${y+5}" text-anchor="middle" class="${sel?'ck-selt':''}">${label}</text></g>`;
 }
 function ckHand(ang,r){
   const x2=130+Math.cos(ang)*r,y2=130+Math.sin(ang)*r;
@@ -167,17 +191,21 @@ function ckDraw(){
 }
 $('#ck-face').addEventListener('click',ev=>{
   const g=ev.target.closest('.ck-tap');if(!g)return;
-  const v=g.dataset.v;
-  if(ckMode==='h'){ckH=(+v)%24;ckMode='m';}
-  else{ckM=(+v)%60;}
-  ckDraw();
+  ckPick(g.dataset.v);
+});
+$('#ck-face').addEventListener('keydown',ev=>{
+  const g=ev.target.closest('.ck-tap');if(!g)return;
+  if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();ckPick(g.dataset.v);}
 });
 $('#ck-h').onclick=()=>{ckMode='h';ckDraw();};
 $('#ck-m').onclick=()=>{ckMode='m';ckDraw();};
 $('#ck-dec').onclick=()=>{ckM=(ckM+59)%60;ckDraw();};
 $('#ck-inc').onclick=()=>{ckM=(ckM+1)%60;ckDraw();};
-$('#ck-cancel').onclick=()=>$('#dlg-clock').close();
-$('#ck-clear').onclick=()=>{if(ckTarget){ckTarget.value='';ckTarget.dispatchEvent(new Event('input',{bubbles:true}));}$('#dlg-clock').close();};
-$('#ck-ok').onclick=()=>{if(ckTarget){ckTarget.value=ckPad(ckH)+':'+ckPad(ckM);ckTarget.dispatchEvent(new Event('input',{bubbles:true}));}$('#dlg-clock').close();};
+function ckClose(){const d=$('#dlg-clock');if(d&&d.open)d.close();if(ckTarget)ckTarget.focus();}
+$('#ck-cancel').onclick=()=>ckClose();
+$('#ck-clear').onclick=()=>{if(ckTarget){ckTarget.value='';ckTarget.dispatchEvent(new Event('input',{bubbles:true}));}ckClose();};
+$('#ck-ok').onclick=()=>{if(ckTarget){ckTarget.value=ckPad(ckH)+':'+ckPad(ckM);ckTarget.dispatchEvent(new Event('input',{bubbles:true}));}ckClose();};
+$('#dlg-clock').addEventListener('click',ev=>{const d=$('#dlg-clock');if(ev.target===d)d.close();});
 
-render();
+readWeekFromURL();
+render(false);
