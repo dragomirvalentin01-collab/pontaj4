@@ -9,7 +9,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="styles.css?v=9">
+<link rel="stylesheet" href="styles.css?v=10">
 </head>
 <body>
 <header class="topbar">
@@ -37,9 +37,21 @@
     </div>
   </section>
 
-  
-
-  
+  <section class="card agent-card">
+    <div class="agent-head">
+      <div>
+        <h2>Asistent pontaj</h2>
+        <p class="muted small">Spune-i ce ai făcut, iar el pregătește completarea. Salvezi doar după confirmare.</p>
+      </div>
+      <button id="agent-mic" class="btn ghost icon" type="button" aria-label="Vorbește" hidden>🎙</button>
+    </div>
+    <div id="agent-log" class="agent-log" aria-live="polite" aria-label="Conversația cu asistentul"></div>
+    <form id="agent-form" class="agent-form">
+      <label class="vh" for="agent-input">Mesaj pentru asistent</label>
+      <input id="agent-input" type="text" autocomplete="off" placeholder="Ex: am început munca la 08:15">
+      <button class="btn primary" type="submit">Trimite</button>
+    </form>
+  </section>
 
   <section id="days" class="days"></section>
 
@@ -75,7 +87,7 @@
 </dialog>
 <div id="print-area"></div>
 
-<script src="app.js?v=9" defer></script>
+<script src="app.js?v=10" defer></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));

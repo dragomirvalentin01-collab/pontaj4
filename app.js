@@ -31,7 +31,7 @@ function render(){
   for(let i=0;i<7;i++){
     const dt=new Date(m);dt.setDate(dt.getDate()+i);
     const v=saved[i]||{s:'',p:'',e:''};
-    const card=document.createElement('div');card.className='day'+(dt.toDateString()===todayStr?' today':'');
+    const card=document.createElement('div');card.className='day'+(dt.toDateString()===todayStr?' today':'');card.dataset.date=dt.toISOString().slice(0,10);
     card.innerHTML=`<div class="day-head"><div><b>${DAYS[i]}</b> <span>${fmtDate(dt)}</span></div><span class="day-total"></span></div>
     <div class="grid3">
       <label>🕐 Început<input type="text" inputmode="none" readonly placeholder="--:--" class="in-s" value="${v.s||''}"></label>
@@ -179,5 +179,104 @@ $('#ck-inc').onclick=()=>{ckM=(ckM+1)%60;ckDraw();};
 $('#ck-cancel').onclick=()=>$('#dlg-clock').close();
 $('#ck-clear').onclick=()=>{if(ckTarget){ckTarget.value='';ckTarget.dispatchEvent(new Event('input',{bubbles:true}));}$('#dlg-clock').close();};
 $('#ck-ok').onclick=()=>{if(ckTarget){ckTarget.value=ckPad(ckH)+':'+ckPad(ckM);ckTarget.dispatchEvent(new Event('input',{bubbles:true}));}$('#dlg-clock').close();};
+
+
+// ---------- asistent local ----------
+const agentLog=$('#agent-log'), agentForm=$('#agent-form'), agentInput=$('#agent-input');
+function normText(v){return v.toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}
+function dateKey(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function timeNow(){const d=new Date();return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
+function parseAgentTime(text){
+  const m=text.match(/(?:la|ora|de la)\s+(\d{1,2})[:.](\d{2})/)||text.match(/\b(\d{1,2})[:.](\d{2})\b/);
+  if(!m)return null;
+  const h=+m[1],min=+m[2];
+  return h<24&&min<60?`${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`:null;
+}
+function parseAgentMinutes(text){
+  const m=text.match(/(\d+)\s*(?:min|minute)/);
+  if(m)return Math.max(0,Math.min(600,+m[1]));
+  if(/\bo ora\b|\b1 ora\b/.test(text))return 60;
+  return null;
+}
+function addAgentMessage(text,role='agent',action=null){
+  const box=document.createElement('div');box.className=`agent-msg ${role}`;box.textContent=text;
+  if(action){
+    const row=document.createElement('div');row.className='agent-actions';
+    const yes=document.createElement('button');yes.className='btn small primary';yes.type='button';yes.textContent='Da, salvează';yes.onclick=()=>{action.apply();box.remove();};
+    const no=document.createElement('button');no.className='btn small';no.type='button';no.textContent='Nu, renunță';no.onclick=()=>{action.cancel();box.remove();};
+    row.append(yes,no);box.append(row);
+  }
+  agentLog.append(box);agentLog.scrollTop=agentLog.scrollHeight;
+}
+function agentDate(raw){
+  const t=normText(raw),d=new Date();
+  if(t.includes('maine'))d.setDate(d.getDate()+1);
+  if(t.includes('ieri'))d.setDate(d.getDate()-1);
+  d.setHours(0,0,0,0);return d;
+}
+function ensureAgentDate(date){
+  if(weekKey(date)!==weekKey(monday)){monday=getMonday(date);render();}
+}
+function agentCard(date){
+  ensureAgentDate(date);
+  return document.querySelector(`.day[data-date="${dateKey(date)}"]`);
+}
+function proposeAgentChange(date,field,value,label){
+  const pretty=field==='p'?'pauză':field==='s'?'început':'sfârșit';
+  addAgentMessage(`Confirmi ${pretty} ${value}${field==='p'&&value!==''?' min':''} pentru ${DAYS[(date.getDay()+6)%7]}, ${fmtDate(date)}?`,'agent',{
+    apply:()=>{
+      const card=agentCard(date);if(!card){addAgentMessage('Nu am găsit ziua în săptămâna afișată.','agent');return;}
+      const input=card.querySelector(`.in-${field}`);if(!input)return;
+      input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));
+      addAgentMessage(`Gata: ${label} salvat pentru ${DAYS[(date.getDay()+6)%7]}, ${fmtDate(date)}.`,'agent');
+      card.scrollIntoView({behavior:'smooth',block:'center'});
+    },
+    cancel:()=>addAgentMessage('Am renunțat, nimic nu a fost salvat.','agent')
+  });
+}
+function answerAgentTotal(date){
+  ensureAgentDate(date);
+  const card=agentCard(date);if(!card){addAgentMessage('Ziua nu este în săptămâna afișată.','agent');return;}
+  const s=card.querySelector('.in-s').value,p=card.querySelector('.in-p').value,e=card.querySelector('.in-e').value;
+  const min=calcDay(s,p,e);
+  addAgentMessage(min?`Ai lucrat ${roDec(min/60)} (${hm(min)}) pe ${DAYS[(date.getDay()+6)%7]}, ${fmtDate(date)}.`:'Nu am încă ore complete pentru acea zi.','agent');
+}
+function handleAgentText(raw){
+  const text=normText(raw);if(!text)return;
+  const date=agentDate(text);
+  if(/\b(cat|cati)\b.*\blucrat\b|\btotal\b.*\bazi\b/.test(text)){answerAgentTotal(date);return;}
+  if(text.includes('pauz')){
+    const minutes=parseAgentMinutes(text);
+    if(minutes==null){addAgentMessage('Cât a durat pauza? Răspunde, de exemplu: „pauză 30 min”.','agent');return;}
+    proposeAgentChange(date,'p',String(minutes),`${minutes} min pauză`);
+    return;
+  }
+  if(/\b(incep|pornesc|inceput)\b/.test(text)){
+    const time=parseAgentTime(text)||timeNow();
+    proposeAgentChange(date,'s',time,`început ${time}`);
+    return;
+  }
+  if(/\b(am\s+)?(termin\w*|ies\w*|plec\w*)\b/.test(text)){
+    const time=parseAgentTime(text)||timeNow();
+    proposeAgentChange(date,'e',time,`sfârșit ${time}`);
+    return;
+  }
+  addAgentMessage('Am înțeles ideea, dar nu știu ce câmp să completez. Încearcă: „am început munca la 08:15”, „am terminat la 16:30” sau „pauză 30 min”.','agent');
+}
+agentForm.addEventListener('submit',ev=>{
+  ev.preventDefault();const raw=agentInput.value.trim();if(!raw)return;
+  addAgentMessage(raw,'user');agentInput.value='';handleAgentText(raw);
+});
+const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(SpeechRecognition){
+  const mic=$('#agent-mic');mic.hidden=false;
+  const rec=new SpeechRecognition();rec.lang='ro-RO';rec.interimResults=false;rec.maxAlternatives=1;
+  mic.onclick=()=>{try{rec.start();mic.classList.add('listening');}catch{}};
+  rec.onresult=ev=>{const text=ev.results[0][0].transcript;agentInput.value=text;agentForm.requestSubmit();};
+  rec.onend=()=>mic.classList.remove('listening');
+  rec.onerror=()=>{mic.classList.remove('listening');addAgentMessage('Microfonul nu a putut asculta. Scrie mesajul.','agent');};
+}
+addAgentMessage('Salut! Spune-mi ce ai făcut, de exemplu „am început munca la 08:15”.','agent');
+
 
 render();
