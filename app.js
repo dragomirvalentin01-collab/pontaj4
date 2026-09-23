@@ -175,9 +175,18 @@ $('#btn-install').onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.pro
   navigator.serviceWorker.addEventListener('controllerchange',()=>{if(refreshing)return;refreshing=true;window.location.reload();});
   function showToast(reg){
     const toast=$('#sw-toast');if(!toast||!reg)return;
-    const waiting=reg.waiting;if(!waiting)return;
+    if(!reg.waiting)return;
     toast.hidden=false;
-    $('#sw-reload').onclick=()=>{try{waiting.postMessage('SKIP_WAITING');}catch{}toast.hidden=true;};
+    $('#sw-reload').onclick=()=>{
+      toast.hidden=true;
+      let done=false;
+      const force=()=>{if(done)return;done=true;window.location.reload();};
+      try{
+        const w=reg.waiting||reg.installing;
+        if(w){try{w.postMessage('SKIP_WAITING');}catch{}}
+      }catch{}
+      setTimeout(force,1500);
+    };
   }
   navigator.serviceWorker.getRegistration().then(reg=>{
     if(!reg)return;
