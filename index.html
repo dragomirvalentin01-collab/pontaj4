@@ -9,7 +9,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="styles.css?v=11">
+<link rel="stylesheet" href="styles.css?v=12">
 </head>
 <body>
 <header class="topbar">
@@ -22,12 +22,12 @@
 
 <main>
   <section class="week-nav card">
-    <button id="btn-prev" class="btn">‹</button>
+    <button id="btn-prev" class="btn" aria-label="Săptămâna anterioară">‹</button>
     <div class="week-nav-mid">
       <strong id="week-range">–</strong>
       <div class="week-nav-sub"><button id="btn-today" class="link">Săptămâna curentă</button><span id="save-dot" class="save-dot">● salvat</span></div>
     </div>
-    <button id="btn-next" class="btn">›</button>
+    <button id="btn-next" class="btn" aria-label="Săptămâna următoare">›</button>
   </section>
 
   <section class="total card highlight">
@@ -57,21 +57,23 @@
   </section>
 
   <p class="muted small center">💾 Totul rămâne pe telefon • 📶 Funcționează offline după prima deschidere<br>8 ore 30 min → <b>8,50 h</b></p>
-</main>
 
 <section class="card" id="instalare-ajutor">
     <h2>📲 Instalare pe Android</h2>
     <p class="muted small">1. Deschide linkul HTTPS în <b>Chrome</b> (nu din Facebook/WhatsApp viewer).<br>2. Meniu ⋮ → <b>Adaugă pe ecranul de pornire</b> / <b>Instalează aplicația</b>.<br>3. Dacă nu apare, folosește butonul 📲 Instalează de sus.</p>
   </section>
-<dialog id="dlg-clock">
+</main>
+
+<dialog id="dlg-clock" aria-label="Alege ora">
   <div class="ck-disp"><button id="ck-h" class="ck-num">08</button><span>:</span><button id="ck-m" class="ck-num">00</button></div>
   <svg id="ck-face" viewBox="0 0 260 260" width="260" height="260" role="img" aria-label="Alege ora"></svg>
   <div class="row wrap ck-fine" id="ck-fine" hidden><button id="ck-dec" class="btn small">−1 min</button><button id="ck-inc" class="btn small">+1 min</button></div>
   <div class="ck-btns"><button id="ck-clear" class="btn small">Șterge</button><button id="ck-cancel" class="btn small">Anulează</button><button id="ck-ok" class="btn small primary">Setează</button></div>
 </dialog>
 <div id="print-area"></div>
+<div id="sw-toast" class="sw-toast" hidden><span>Versiune nouă disponibilă.</span><button id="sw-reload" class="btn small primary" type="button">Reîncarcă</button></div>
 
-<script src="app.js?v=11" defer></script>
+<script src="app.js?v=12" defer></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));

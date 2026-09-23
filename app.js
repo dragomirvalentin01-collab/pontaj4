@@ -6,42 +6,69 @@ const $=s=>document.querySelector(s);
 const daysEl=$('#days'), histEl=$('#history');
 
 function getMonday(d){const x=new Date(d);const day=(x.getDay()+6)%7;x.setDate(x.getDate()-day);x.setHours(0,0,0,0);return x;}
-function weekKey(dt){const m=getMonday(dt);const y=m.getFullYear();const onejan=new Date(y,0,1);const w=Math.ceil((((m-onejan)/864e5)+onejan.getDay()+1)/7);return `${y}-W${String(w).padStart(2,'0')}`;}
+function weekKey(dt){
+  const d=new Date(Date.UTC(dt.getFullYear(),dt.getMonth(),dt.getDate()));
+  const day=(d.getUTCDay()+6)%7;
+  d.setUTCDate(d.getUTCDate()-day+3);
+  const firstThu=new Date(Date.UTC(d.getUTCFullYear(),0,4));
+  const fday=(firstThu.getUTCDay()+6)%7;
+  firstThu.setUTCDate(firstThu.getUTCDate()-fday+3);
+  const w=1+Math.round((d-firstThu)/(7*864e5));
+  return `${d.getUTCFullYear()}-W${String(w).padStart(2,'0')}`;
+}
+function legacyWeekKey(dt){const m=getMonday(dt);const y=m.getFullYear();const onejan=new Date(y,0,1);const w=Math.ceil((((m-onejan)/864e5)+onejan.getDay()+1)/7);return `${y}-W${String(w).padStart(2,'0')}`;}
 function fmtDate(d){return d.toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit'});}
-function roDec(h){return h.toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2})+' h';}
-function toMin(t){if(!t)return null;const[a,b]=t.split(':').map(Number);return a*60+b;}
-function calcDay(s,p,e){const a=toMin(s),b=toMin(e);if(a==null||b==null)return 0;let d=b-a;if(d<0)d+=24*60;const pause=parseInt(p||'0',10)||0;return Math.max(0,d-pause);}
+function roDec(h){return h.toLocaleString('ro-RO',{minimumFractionDigits:2,maximumFractionDigits:2})+' h';}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function isWeekKey(k){return /^\d{4}-W(0[1-9]|[1-4][0-9]|5[0-3])$/.test(k||'');}
+function isTimeStr(t){return /^([01]\d|2[0-3]):[0-5]\d$/.test(t||'');}
+function isPauseStr(p){if(p==null||p==='')return true;const n=Number(p);return Number.isFinite(n)&&n>=0&&n<=600;}
+function toMin(t){if(!isTimeStr(t))return null;const[a,b]=t.split(':').map(Number);return a*60+b;}
+function sanitizeDay(v){v=v&&typeof v==='object'?v:{};const s=isTimeStr(v.s)?v.s:'';const e=isTimeStr(v.e)?v.e:'';const p=isPauseStr(v.p)?(v.p==null?'':String(v.p)):'';return{s,p,e};}
+function calcDay(s,p,e){const a=toMin(s),b=toMin(e);if(a==null||b==null)return 0;let d=b-a;if(d<0)d+=24*60;const pause=parseInt(p||'0',10);if(!Number.isFinite(pause)||pause<0)return Math.max(0,d);return Math.max(0,d-Math.min(600,pause));}
 function hm(min){return `${Math.floor(min/60)}:${String(min%60).padStart(2,'0')}`;}
 
 function loadWeek(k){try{return JSON.parse(localStorage.getItem('pontaj:'+k))||{}}catch{return{}}}
-function saveWeek(){const k=weekKey(monday);const data={};document.querySelectorAll('.day').forEach((el,i)=>{data[i]={s:el.querySelector('.in-s').value,p:el.querySelector('.in-p').value,e:el.querySelector('.in-e').value};});
+let histT=null;
+function scheduleHistory(){clearTimeout(histT);histT=setTimeout(()=>{try{renderHistory();}catch{}},300);}
+function saveWeek(){const k=weekKey(monday);const data={};document.querySelectorAll('.day').forEach((el,i)=>{const raw={s:el.querySelector('.in-s').value,p:el.querySelector('.in-p').value,e:el.querySelector('.in-e').value};data[i]=sanitizeDay(raw);});
   localStorage.setItem('pontaj:'+k,JSON.stringify(data));
   const idx=getIndex();if(!idx.includes(k)){idx.push(k);idx.sort().reverse();localStorage.setItem('pontaj:index',JSON.stringify(idx.slice(0,52)));}
   const d=$('#save-dot');d.classList.add('show');clearTimeout(d._t);d._t=setTimeout(()=>d.classList.remove('show'),1200);
-  renderHistory();}
+  scheduleHistory();}
 function getIndex(){try{return JSON.parse(localStorage.getItem('pontaj:index'))||[]}catch{return[]}}
 
 function render(){
   const m=new Date(monday);const end=new Date(m);end.setDate(end.getDate()+6);
   $('#week-range').textContent=`${fmtDate(m)} – ${fmtDate(end)} ${end.getFullYear()}`;
-  $('#week-label').textContent='Săpt. '+weekKey(monday);
-  const saved=loadWeek(weekKey(monday));
+  const wk=weekKey(monday);
+  $('#week-label').textContent='Săpt. '+wk;
+  try{
+    if(!localStorage.getItem('pontaj:'+wk)){
+      const lk=legacyWeekKey(monday);
+      if(lk!==wk){const old=localStorage.getItem('pontaj:'+lk);if(old){localStorage.setItem('pontaj:'+wk,old);}}
+    }
+  }catch{}
+  const saved=loadWeek(wk);
   const todayStr=new Date().toDateString();
   daysEl.innerHTML='';
   for(let i=0;i<7;i++){
     const dt=new Date(m);dt.setDate(dt.getDate()+i);
-    const v=saved[i]||{s:'',p:'',e:''};
+    const v=sanitizeDay(saved[i]);
     const card=document.createElement('div');card.className='day'+(dt.toDateString()===todayStr?' today':'');card.dataset.date=dt.toISOString().slice(0,10);
     card.innerHTML=`<div class="day-head"><div><b>${DAYS[i]}</b> <span>${fmtDate(dt)}</span></div><span class="day-total"></span></div>
     <div class="grid3">
-      <label>🕐 Început<input type="text" inputmode="none" readonly placeholder="--:--" class="in-s" value="${v.s||''}"></label>
-      <label>⏸️ Pauză (min)<input type="number" class="in-p" min="0" max="600" step="5" inputmode="numeric" value="${v.p||''}" placeholder="30"></label>
-      <label>🏁 Sfârșit<input type="text" inputmode="none" readonly placeholder="--:--" class="in-e" value="${v.e||''}"></label>
-    </div><div class="chips">${[0,15,30,45,60].map(x=>`<button class="chip" data-p="${x}">${x}</button>`).join('')}</div>`;
+      <label>🕐 Început<input type="text" inputmode="none" readonly placeholder="--:--" class="in-s" aria-haspopup="dialog" value="${esc(v.s)}"></label>
+      <label>⏸️ Pauză (min)<input type="number" class="in-p" min="0" max="600" step="5" inputmode="numeric" value="${esc(v.p)}" placeholder="30"></label>
+      <label>🏁 Sfârșit<input type="text" inputmode="none" readonly placeholder="--:--" class="in-e" aria-haspopup="dialog" value="${esc(v.e)}"></label>
+    </div><div class="chips">${[0,15,30,45,60].map(x=>`<button type="button" class="chip" data-p="${x}" aria-pressed="${String(v.p||'')===String(x)}">${x}</button>`).join('')}</div>`;
     daysEl.appendChild(card);
   }
   daysEl.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',()=>{recalc();saveWeek();}));
-  daysEl.querySelectorAll('.in-s,.in-e').forEach(inp=>inp.addEventListener('click',()=>openClock(inp)));
+  daysEl.querySelectorAll('.in-s,.in-e').forEach(inp=>{
+    inp.addEventListener('click',()=>openClock(inp));
+    inp.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();openClock(inp);}});
+  });
   daysEl.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',ev=>{ev.preventDefault();const card=c.closest('.day');card.querySelector('.in-p').value=c.dataset.p;recalc();saveWeek();}));
   recalc();renderHistory();
 }
@@ -52,28 +79,32 @@ function recalc(){
     const min=calcDay(s,p,e);total+=min;if(min>0)days++;
     const out=card.querySelector('.day-total');
     out.textContent=min>0?`${roDec(min/60)} (${hm(min)})`:'—';
-    card.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',String(p||'')===c.dataset.p));
+    card.querySelectorAll('.chip').forEach(c=>{const on=String(p||'')===c.dataset.p;c.classList.toggle('on',on);c.setAttribute('aria-pressed',on?'true':'false');});
   });
   $('#total-dec').textContent=roDec(total/60);
   $('#total-hm').textContent=`${hm(total)} • ${days} ${days===1?'zi':'zile'}`;
 }
 function renderHistory(){
-  const idx=getIndex();histEl.innerHTML=idx.length?'':'<li class="muted">Nicio săptămână salvată încă.</li>';
+  const idx=getIndex().filter(isWeekKey);histEl.innerHTML=idx.length?'':'<li class="muted">Nicio săptămână salvată încă.</li>';
   idx.slice(0,12).forEach(k=>{
-    let tot=0;const d=loadWeek(k);Object.values(d).forEach(v=>tot+=calcDay(v.s,v.p,v.e));
+    let tot=0;const d=loadWeek(k);Object.values(d).forEach(raw=>{const v=sanitizeDay(raw);tot+=calcDay(v.s,v.p,v.e);});
     const li=document.createElement('li');
-    li.innerHTML=`<span><b>${k}</b><br><span class="muted">${roDec(tot/60)} • ${hm(tot)}</span></span><span><button class="btn small" data-open="${k}">Deschide</button> <button class="btn small" data-del="${k}">✕</button></span>`;
+    const b=document.createElement('b');b.textContent=k;
+    const sub=document.createElement('span');sub.className='muted';sub.textContent=`${roDec(tot/60)} • ${hm(tot)}`;
+    const left=document.createElement('span');left.append(b,document.createElement('br'),sub);
+    const open=document.createElement('button');open.className='btn small';open.textContent='Deschide';open.setAttribute('aria-label','Deschide săptămâna '+k);open.onclick=()=>{const[y,w]=k.split('-W');monday=mondayFromWeek(+y,+w);render();window.scrollTo({top:0,behavior:'smooth'});};
+    const del=document.createElement('button');del.className='btn small';del.textContent='✕';del.setAttribute('aria-label','Șterge săptămâna '+k);del.onclick=()=>{if(!confirm('Ștergi '+k+'?'))return;localStorage.removeItem('pontaj:'+k);localStorage.setItem('pontaj:index',JSON.stringify(getIndex().filter(x=>x!==k)));renderHistory();};
+    const right=document.createElement('span');right.append(open,' ',del);
+    li.append(left,right);
     histEl.appendChild(li);
   });
-  histEl.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{const[y,w]=b.dataset.open.split('-W');monday=mondayFromWeek(+y,+w);render();window.scrollTo({top:0,behavior:'smooth'});});
-  histEl.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{if(!confirm('Ștergi '+b.dataset.del+'?'))return;localStorage.removeItem('pontaj:'+b.dataset.del);localStorage.setItem('pontaj:index',JSON.stringify(getIndex().filter(x=>x!==b.dataset.del)));renderHistory();});
 }
-function mondayFromWeek(y,w){const s=new Date(y,0,1+(w-1)*7);const d=getMonday(s);if(d.getFullYear()<y)d.setDate(d.getDate()+7);return d;}
+function mondayFromWeek(y,w){const jan4=new Date(y,0,4);const d=getMonday(jan4);d.setDate(d.getDate()+(w-1)*7);return d;}
 
 $('#btn-prev').onclick=()=>{monday.setDate(monday.getDate()-7);render();};
 $('#btn-next').onclick=()=>{monday.setDate(monday.getDate()+7);render();};
 $('#btn-today').onclick=()=>{monday=getMonday(new Date());render();};
-$('#btn-clear').onclick=()=>{if(!confirm('Ștergi toate orele din săptămâna afișată?'))return;localStorage.removeItem('pontaj:'+weekKey(monday));render();};
+$('#btn-clear').onclick=()=>{if(!confirm('Ștergi toate orele din săptămâna afișată?'))return;try{localStorage.removeItem('pontaj:'+weekKey(monday));const lk=legacyWeekKey(monday);if(lk)localStorage.removeItem('pontaj:'+lk);}catch{}render();};
 $('#btn-copy-weekdays').onclick=()=>{const f=document.querySelectorAll('.day')[0];const s=f.querySelector('.in-s').value,p=f.querySelector('.in-p').value,e=f.querySelector('.in-e').value;document.querySelectorAll('.day').forEach((c,i)=>{if(i>=1&&i<=4){c.querySelector('.in-s').value=s;c.querySelector('.in-p').value=p;c.querySelector('.in-e').value=e;}});recalc();saveWeek();};
 $('#btn-export').onclick=()=>{
   const data={};
@@ -88,16 +119,33 @@ $('#btn-export').onclick=()=>{
 $('#btn-import').onclick=()=>$('#file-import').click();
 $('#file-import').onchange=(ev)=>{
   const f=ev.target.files&&ev.target.files[0];if(!f)return;
+  if(f.size>1024*1024){alert('Fișierul e prea mare (max 1 MB).');ev.target.value='';return;}
   const rd=new FileReader();
   rd.onload=()=>{
     try{
       const data=JSON.parse(rd.result);
       if(!data||typeof data!=='object')throw new Error('bad');
-      const keys=Object.keys(data).filter(k=>k.indexOf('pontaj:')===0);
+      const keys=Object.keys(data).filter(k=>k.indexOf('pontaj:')===0&&isWeekKey(k.slice(7)));
       if(!keys.length){alert('Fișierul nu conține backup de pontaj.');return;}
-      if(!confirm('Import '+keys.length+' intrări? Datele existente cu aceeași cheie se suprascriu.'))return;
-      keys.forEach(k=>localStorage.setItem(k,JSON.stringify(data[k])));
-      render();alert('Import gata: '+keys.length+' intrări.');
+      const clean={};let skipped=0;
+      keys.forEach(k=>{
+        const week=data[k];
+        if(!week||typeof week!=='object'){skipped++;return;}
+        const days={};let ok=false;
+        Object.keys(week).forEach(di=>{
+          if(!/^[0-6]$/.test(di))return;
+          const v=sanitizeDay(week[di]);
+          if(v.s||v.p||v.e)ok=true;
+          days[di]=v;
+        });
+        if(!ok&&Object.keys(days).length===0){skipped++;return;}
+        clean[k]=days;
+      });
+      const good=Object.keys(clean);
+      if(!good.length){alert('Fișierul nu conține intrări valide.');return;}
+      if(!confirm('Import '+good.length+' intrări?'+(skipped?' ('+skipped+' ignorate ca invalide)':'')+' Datele existente cu aceeași cheie se suprascriu.'))return;
+      good.forEach(k=>localStorage.setItem(k,JSON.stringify(clean[k])));
+      render();alert('Import gata: '+good.length+' intrări.');
     }catch{alert('Fișier invalid. Alege un JSON exportat din Pontaj.');}
     ev.target.value='';
   };
@@ -105,9 +153,9 @@ $('#file-import').onchange=(ev)=>{
 };
 $('#btn-print').onclick=()=>{
   const m=new Date(monday);let rows='',tot=0;
-  for(let i=0;i<7;i++){const card=document.querySelectorAll('.day')[i];const s=card.querySelector('.in-s').value||'—',p=card.querySelector('.in-p').value||'0',e=card.querySelector('.in-e').value||'—';const min=calcDay(card.querySelector('.in-s').value,card.querySelector('.in-p').value,card.querySelector('.in-e').value);tot+=min;const dt=new Date(m);dt.setDate(dt.getDate()+i);
-    rows+=`<tr><td>${DAYS[i]} ${fmtDate(dt)}</td><td>${s}</td><td>${p} min</td><td>${e}</td><td>${min>0?roDec(min/60)+' ('+hm(min)+')':'—'}</td></tr>`;}
-  $('#print-area').innerHTML=`<h1>Pontaj ${weekKey(monday)} — ${$('#week-range').textContent}</h1><p>Total: <b>${roDec(tot/60)} (${hm(tot)})</b></p><table><tr><th>Zi</th><th>Început</th><th>Pauză</th><th>Sfârșit</th><th>Total</th></tr>${rows}</table>`;
+  for(let i=0;i<7;i++){const card=document.querySelectorAll('.day')[i];const raw={s:card.querySelector('.in-s').value,p:card.querySelector('.in-p').value,e:card.querySelector('.in-e').value};const v=sanitizeDay(raw);const s=v.s||'—',p=v.p||'0',e=v.e||'—';const min=calcDay(v.s,v.p,v.e);tot+=min;const dt=new Date(m);dt.setDate(dt.getDate()+i);
+    rows+=`<tr><td>${esc(DAYS[i])} ${esc(fmtDate(dt))}</td><td>${esc(s)}</td><td>${esc(p)} min</td><td>${esc(e)}</td><td>${min>0?esc(roDec(min/60)+' ('+hm(min)+')'):'—'}</td></tr>`;}
+  $('#print-area').innerHTML=`<h1>Pontaj ${esc(weekKey(monday))} — ${esc($('#week-range').textContent)}</h1><p>Total: <b>${esc(roDec(tot/60)+' ('+hm(tot)+')')}</b></p><table><tr><th>Zi</th><th>Început</th><th>Pauză</th><th>Sfârșit</th><th>Total</th></tr>${rows}</table>`;
   window.print();
 };
 
@@ -120,21 +168,51 @@ setTheme(localStorage.getItem('pontaj:theme')||(matchMedia('(prefers-color-schem
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('#btn-install').hidden=false;});
 $('#btn-install').onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('#btn-install').hidden=true;};
 
+// update disponibil (PWA)
+(function swUpdate(){
+  if(!('serviceWorker' in navigator))return;
+  let refreshing=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(refreshing)return;refreshing=true;window.location.reload();});
+  function showToast(reg){
+    const toast=$('#sw-toast');if(!toast||!reg)return;
+    const waiting=reg.waiting;if(!waiting)return;
+    toast.hidden=false;
+    $('#sw-reload').onclick=()=>{try{waiting.postMessage('SKIP_WAITING');}catch{}toast.hidden=true;};
+  }
+  navigator.serviceWorker.getRegistration().then(reg=>{
+    if(!reg)return;
+    if(reg.waiting)showToast(reg);
+    reg.addEventListener('updatefound',()=>{
+      const nw=reg.installing;if(!nw)return;
+      nw.addEventListener('statechange',()=>{if(nw.state==='installed'&&navigator.serviceWorker.controller)showToast(reg);});
+    });
+  }).catch(()=>{});
+})();
 
-// ---------- ceas propriu (rotund, 24h) ----------
-let ckTarget=null,ckH=8,ckM=0,ckMode='h';
+
+// ---------- ceas analogic (rotund, 24h) — păstrat, cu suport tastatură ----------
+let ckTarget=null,ckH=8,ckM=0,ckMode='h',ckReturnFocus=null;
 const ckPad=n=>String(n).padStart(2,'0');
+function ckClose(returnFocus){
+  try{$('#dlg-clock').close();}catch{}
+  if(returnFocus!==false&&ckReturnFocus&&document.contains(ckReturnFocus)){try{ckReturnFocus.focus();}catch{}}
+  ckReturnFocus=null;
+}
 function openClock(inp){
   ckTarget=inp;
+  ckReturnFocus=document.activeElement;
   const m=(inp.value||'').match(/^(\d{1,2}):(\d{2})$/);
   const now=new Date();
   ckH=m?Math.min(23,+m[1]):now.getHours();
   ckM=m?Math.min(59,+m[2]):(Math.round(now.getMinutes()/5)*5)%60;
+  if(!Number.isFinite(ckH))ckH=now.getHours();
+  if(!Number.isFinite(ckM))ckM=0;
   ckMode='h';ckDraw();
-  const d=$('#dlg-clock');if(d&&typeof d.showModal==='function')d.showModal();
+  const d=$('#dlg-clock');if(d&&typeof d.showModal==='function'){d.showModal();try{$('#ck-ok').focus();}catch{}}
 }
-function ckNum(x,y,label,sel){
-  return `<g class="ck-tap" data-v="${label}"><circle cx="${x}" cy="${y}" r="17" class="${sel?'ck-sel':''}"/><text x="${x}" y="${y+5}" text-anchor="middle" class="${sel?'ck-selt':''}">${label}</text></g>`;
+function ckNum(x,y,label,sel,kind){
+  const aria=kind==='h'?'Ora '+label:'Minutul '+label;
+  return `<g class="ck-tap" data-v="${esc(label)}" tabindex="0" role="button" aria-label="${esc(aria)}"><circle cx="${x}" cy="${y}" r="17" class="${sel?'ck-sel':''}"/><text x="${x}" y="${y+5}" text-anchor="middle" class="${sel?'ck-selt':''}">${esc(label)}</text></g>`;
 }
 function ckHand(ang,r){
   const x2=130+Math.cos(ang)*r,y2=130+Math.sin(ang)*r;
@@ -150,8 +228,8 @@ function ckDraw(){
     const outer=[0,13,14,15,16,17,18,19,20,21,22,23],inner=[12,1,2,3,4,5,6,7,8,9,10,11];
     for(let i=0;i<12;i++){
       const a=(i/12)*Math.PI*2-Math.PI/2;
-      h+=ckNum(cx+Math.cos(a)*96,cy+Math.sin(a)*96,outer[i],ckH===outer[i]);
-      h+=ckNum(cx+Math.cos(a)*58,cy+Math.sin(a)*58,inner[i],ckH===inner[i]);
+      h+=ckNum(cx+Math.cos(a)*96,cy+Math.sin(a)*96,outer[i],ckH===outer[i],'h');
+      h+=ckNum(cx+Math.cos(a)*58,cy+Math.sin(a)*58,inner[i],ckH===inner[i],'h');
     }
     const oi=outer.indexOf(ckH),inr=oi<0;
     const pos=inr?inner.indexOf(ckH):oi;
@@ -159,26 +237,36 @@ function ckDraw(){
   }else{
     for(let i=0;i<12;i++){
       const a=(i/12)*Math.PI*2-Math.PI/2;
-      h+=ckNum(cx+Math.cos(a)*96,cy+Math.sin(a)*96,ckPad(i*5),ckM===i*5);
+      h+=ckNum(cx+Math.cos(a)*96,cy+Math.sin(a)*96,ckPad(i*5),ckM===i*5,'m');
     }
     h+=ckHand((ckM/60)*Math.PI*2-Math.PI/2,96);
   }
   $('#ck-face').innerHTML=h;
 }
-$('#ck-face').addEventListener('click',ev=>{
-  const g=ev.target.closest('.ck-tap');if(!g)return;
-  const v=g.dataset.v;
+function ckPick(v){
   if(ckMode==='h'){ckH=(+v)%24;ckMode='m';}
   else{ckM=(+v)%60;}
   ckDraw();
+  try{const sel=$('#ck-face .ck-tap[tabindex]');if(sel)sel.focus();}catch{}
+}
+$('#ck-face').addEventListener('click',ev=>{
+  const g=ev.target.closest('.ck-tap');if(!g)return;
+  ckPick(g.dataset.v);
+});
+$('#ck-face').addEventListener('keydown',ev=>{
+  const g=ev.target.closest('.ck-tap');if(!g)return;
+  if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();ckPick(g.dataset.v);}
 });
 $('#ck-h').onclick=()=>{ckMode='h';ckDraw();};
+$('#ck-h').addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();ckMode='h';ckDraw();}});
 $('#ck-m').onclick=()=>{ckMode='m';ckDraw();};
+$('#ck-m').addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();ckMode='m';ckDraw();}});
 $('#ck-dec').onclick=()=>{ckM=(ckM+59)%60;ckDraw();};
 $('#ck-inc').onclick=()=>{ckM=(ckM+1)%60;ckDraw();};
-$('#ck-cancel').onclick=()=>$('#dlg-clock').close();
-$('#ck-clear').onclick=()=>{if(ckTarget){ckTarget.value='';ckTarget.dispatchEvent(new Event('input',{bubbles:true}));}$('#dlg-clock').close();};
-$('#ck-ok').onclick=()=>{if(ckTarget){ckTarget.value=ckPad(ckH)+':'+ckPad(ckM);ckTarget.dispatchEvent(new Event('input',{bubbles:true}));}$('#dlg-clock').close();};
+$('#ck-cancel').onclick=()=>ckClose(true);
+$('#ck-clear').onclick=()=>{if(ckTarget){ckTarget.value='';ckTarget.dispatchEvent(new Event('input',{bubbles:true}));}ckClose(true);};
+$('#ck-ok').onclick=()=>{if(ckTarget){ckTarget.value=ckPad(ckH)+':'+ckPad(ckM);ckTarget.dispatchEvent(new Event('input',{bubbles:true}));}ckClose(true);};
+try{$('#dlg-clock').addEventListener('close',()=>{if(ckReturnFocus&&document.contains(ckReturnFocus)){try{ckReturnFocus.focus();}catch{}}ckReturnFocus=null;});}catch{}
 
 
 render();
