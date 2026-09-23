@@ -15,19 +15,6 @@ main{max-width:640px;margin:0 auto;padding:12px;display:grid;gap:12px}
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}label{font-size:12px;color:var(--muted);display:grid;gap:4px}input{width:100%;padding:10px 8px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:16px}
 .chips{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}.chip{font-size:12px;padding:6px 10px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer}.chip.on{background:var(--acc);color:#06283a;border-color:transparent;font-weight:700}
 .row-actions{display:flex;gap:8px}
-.agent-card{display:grid;gap:12px}
-.agent-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.agent-head h2{margin-bottom:2px}
-.agent-head p{margin:0}
-.agent-log{max-height:280px;overflow:auto;display:grid;gap:8px;padding:2px}
-.agent-msg{max-width:88%;padding:10px 12px;border-radius:14px;font-size:14px;line-height:1.45;white-space:pre-wrap}
-.agent-msg.agent{justify-self:start;background:color-mix(in srgb,var(--acc) 14%,var(--bg));border:1px solid color-mix(in srgb,var(--acc) 35%,var(--line))}
-.agent-msg.user{justify-self:end;background:var(--bg2);border:1px solid var(--line)}
-.agent-actions{display:flex;gap:8px;margin-top:10px}
-.agent-actions .btn{flex:1}
-.agent-form{display:flex;gap:8px}
-.agent-form input{min-width:0;flex:1}
-.agent-form .btn{min-width:84px}
 .vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .history{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}.history li{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px}.history button{cursor:pointer}
 .muted{color:var(--muted)}.small{font-size:13px}.center{text-align:center}
