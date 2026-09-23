@@ -1,5 +1,5 @@
-const C='pontaj-v14';
-const ASSETS=['./','./index.html','./styles.css?v=14','./app.js?v=14','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./icon-maskable-512.png'];
+const C='pontaj-v15';
+const ASSETS=['./','./index.html','./styles.css?v=15','./app.js?v=15','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./icon-maskable-512.png'];
 let userConfirmedUpdate=false;
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(ASSETS)));});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))).then(()=>self.clients.claim()).then(()=>{
