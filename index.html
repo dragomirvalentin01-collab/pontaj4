@@ -4,61 +4,87 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pontaj Săptămânal</title>
-<meta name="description" content="Pontaj săptămânal Luni–Duminică, calcul automat, offline, instalabil pe Android.">
+<meta name="description" content="Pontaj săptămânal Luni–Duminică, calcul automat, sincronizare în cloud.">
 <meta name="theme-color" content="#0f172a" id="meta-theme">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="styles.css?v=15">
+<link rel="stylesheet" href="styles.css?v=16">
+<script type="importmap">{"imports":{"@supabase/supabase-js":"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"}}</script>
 </head>
 <body>
 <header class="topbar">
   <div class="brand"><span class="logo">📅</span><div><h1>Pontaj</h1><p id="week-label">Săptămâna</p></div></div>
   <div class="top-actions">
+    <div id="user-bar" class="user-bar" hidden><span id="user-email"></span><button id="btn-logout" class="btn small ghost">Ieșire</button></div>
     <button id="btn-install" class="btn ghost" hidden>📲 Instalează</button>
     <button id="btn-theme" class="btn ghost" aria-label="Dark mode">🌙</button>
   </div>
 </header>
 
 <main>
-  <section class="week-nav card">
-    <button id="btn-prev" class="btn" aria-label="Săptămâna anterioară">‹</button>
-    <div class="week-nav-mid">
-      <strong id="week-range">–</strong>
-      <div class="week-nav-sub"><button id="btn-today" class="link">Săptămâna curentă</button><span id="save-dot" class="save-dot">● salvat</span></div>
+  <!-- Auth - vizibil doar când nu ești logat -->
+  <section id="auth-card" class="card auth-card" hidden>
+    <h2>🔐 Conectează-te ca să nu pierzi datele</h2>
+    <p class="muted small">Datele se salvează în contul tău și se sincronizează pe orice telefon. Dacă ștergi cache-ul, revin după login.</p>
+    <div id="auth-error" class="error-box"></div>
+    <div class="auth-tabs">
+      <button id="tab-signin" class="auth-tab on" type="button">Am cont</button>
+      <button id="tab-signup" class="auth-tab" type="button">Cont nou</button>
     </div>
-    <button id="btn-next" class="btn" aria-label="Săptămâna următoare">›</button>
+    <form id="form-auth" class="auth-form">
+      <label>Email<input id="auth-email" type="email" placeholder="tu@exemplu.com" autocomplete="email" required></label>
+      <label>Parolă<input id="auth-pass" type="password" placeholder="minim 6 caractere" autocomplete="current-password" required></label>
+      <button id="btn-auth" type="submit" class="btn primary" style="width:100%">Intră în cont</button>
+    </form>
+    <div class="auth-divider"><span>sau</span></div>
+    <button id="btn-google" class="google-btn" type="button"> <span>🔵</span> Continuă cu Google</button>
+    <p class="muted small center" style="margin-top:10px">Prin login accepți sincronizarea datelor pontajului în cloud (doar tu le vezi).</p>
   </section>
 
-  <section class="total card highlight">
-    <div><span class="lbl">Total săptămânal</span><strong id="total-dec">0,00 h</strong><span id="total-hm" class="muted">0:00 • 0 zile</span></div>
-    <div class="total-actions">
-      <button id="btn-print" class="btn primary">📄 Export / PDF</button>
-    </div>
-  </section>
+  <div id="auth-loading" class="card center"><p class="muted">Se verifică sesiunea…</p></div>
 
-  <section id="days" class="days"></section>
+  <!-- App content - vizibil doar când ești logat -->
+  <div id="app-content" hidden>
+    <section class="week-nav card">
+      <button id="btn-prev" class="btn" aria-label="Săptămâna anterioară">‹</button>
+      <div class="week-nav-mid">
+        <strong id="week-range">–</strong>
+        <div class="week-nav-sub"><button id="btn-today" class="link">Săptămâna curentă</button><span id="save-dot" class="save-dot">● salvat</span><span id="cloud-dot" class="cloud-dot">● sincronizat</span></div>
+      </div>
+      <button id="btn-next" class="btn" aria-label="Săptămâna următoare">›</button>
+    </section>
 
-  <section class="card row-actions">
-    <button id="btn-copy-weekdays" class="btn small">🧮 Copiază Luni → Mar–Vin</button>
-    <button id="btn-clear" class="btn small danger-ghost">🗑️ Șterge săptămâna</button>
-  </section>
+    <section class="total card highlight">
+      <div><span class="lbl">Total săptămânal</span><strong id="total-dec">0,00 h</strong><span id="total-hm" class="muted">0:00 • 0 zile</span></div>
+      <div class="total-actions">
+        <button id="btn-print" class="btn primary">📄 Export / PDF</button>
+      </div>
+    </section>
 
-  <section class="card row-actions">
-    <button id="btn-export" class="btn small">💾 Export backup (JSON)</button>
-    <button id="btn-import" class="btn small">📥 Import backup</button>
-    <input id="file-import" type="file" accept="application/json,.json" hidden>
-  </section>
+    <section id="days" class="days"></section>
 
-  <section class="card">
-    <h2>🗂️ Istoric săptămâni</h2>
-    <p class="muted small">Salvare automată pe telefon (offline). Atinge o săptămână pentru a o deschide.</p>
-    <ul id="history" class="history"></ul>
-  </section>
+    <section class="card row-actions">
+      <button id="btn-copy-weekdays" class="btn small">🧮 Copiază Luni → Mar–Vin</button>
+      <button id="btn-clear" class="btn small danger-ghost">🗑️ Șterge săptămâna</button>
+    </section>
 
-  <p class="muted small center">💾 Totul rămâne pe telefon • 📶 Funcționează offline după prima deschidere<br>8 ore 30 min → <b>8,50 h</b></p>
+    <section class="card row-actions">
+      <button id="btn-export" class="btn small">💾 Export backup (JSON)</button>
+      <button id="btn-import" class="btn small">📥 Import backup</button>
+      <input id="file-import" type="file" accept="application/json,.json" hidden>
+    </section>
 
-<section class="card" id="instalare-ajutor">
+    <section class="card">
+      <h2>🗂️ Istoric săptămâni</h2>
+      <p class="muted small">Sincronizare automată în cloud. Atinge o săptămână pentru a o deschide.</p>
+      <ul id="history" class="history"></ul>
+    </section>
+
+    <p class="muted small center">☁️ Datele sunt legate de contul tău • Ștergerea cache-ului nu le mai șterge<br>8 ore 30 min → <b>8,50 h</b></p>
+  </div>
+
+  <section class="card" id="instalare-ajutor">
     <h2>📲 Instalare pe Android</h2>
     <p class="muted small">1. Deschide linkul HTTPS în <b>Chrome</b> (nu din Facebook/WhatsApp viewer).<br>2. Meniu ⋮ → <b>Adaugă pe ecranul de pornire</b> / <b>Instalează aplicația</b>.<br>3. Dacă nu apare, folosește butonul 📲 Instalează de sus.</p>
   </section>
@@ -73,7 +99,7 @@
 <div id="print-area"></div>
 <div id="sw-toast" class="sw-toast" hidden><span>Versiune nouă disponibilă.</span><button id="sw-reload" class="btn small primary" type="button">Reîncarcă</button></div>
 
-<script src="app.js?v=15" defer></script>
+<script type="module" src="app.js?v=16"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));

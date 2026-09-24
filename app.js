@@ -1,9 +1,21 @@
+import { createClient } from '@supabase/supabase-js';
+
+const SUPABASE_URL = 'https://nkqncfxmarlcwvzqzzbl.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rcW5jZnhtYXJsY3d2enF6emJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyNjU5MTgsImV4cCI6MjEwNTg0MTkxOH0.leTOr62c4uuKy1R8FbeYTvtCMm6927tsFMzXdl7qbiI';
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 const DAYS=['Luni','Marți','Miercuri','Joi','Vineri','Sâmbătă','Duminică'];
 let monday=getMonday(new Date());
 let deferredPrompt=null;
 
 const $=s=>document.querySelector(s);
 const daysEl=$('#days'), histEl=$('#history');
+
+// ---- Auth state ----
+let currentUser=null;
+let authMode='signin';
+let cloudSyncTimer=null;
+let isCloudPulling=false;
 
 function getMonday(d){const x=new Date(d);const day=(x.getDay()+6)%7;x.setDate(x.getDate()-day);x.setHours(0,0,0,0);return x;}
 function weekKey(dt){
@@ -31,18 +43,120 @@ function hm(min){return `${Math.floor(min/60)}:${String(min%60).padStart(2,'0')}
 function loadWeek(k){try{return JSON.parse(localStorage.getItem('pontaj:'+k))||{}}catch{return{}}}
 let histT=null;
 function scheduleHistory(){clearTimeout(histT);histT=setTimeout(()=>{try{renderHistory();}catch{}},300);}
-function saveWeek(){const k=weekKey(monday);const data={};document.querySelectorAll('.day').forEach((el,i)=>{const raw={s:el.querySelector('.in-s').value,p:el.querySelector('.in-p').value,e:el.querySelector('.in-e').value};data[i]=sanitizeDay(raw);});
+function saveWeek(){
+  const k=weekKey(monday);
+  const data={};
+  document.querySelectorAll('.day').forEach((el,i)=>{const raw={s:el.querySelector('.in-s').value,p:el.querySelector('.in-p').value,e:el.querySelector('.in-e').value};data[i]=sanitizeDay(raw);});
   localStorage.setItem('pontaj:'+k,JSON.stringify(data));
   const idx=getIndex();if(!idx.includes(k)){idx.push(k);idx.sort().reverse();localStorage.setItem('pontaj:index',JSON.stringify(idx.slice(0,52)));}
-  const d=$('#save-dot');d.classList.add('show');clearTimeout(d._t);d._t=setTimeout(()=>d.classList.remove('show'),1200);
-  scheduleHistory();}
+  const d=$('#save-dot');if(d){d.classList.add('show');clearTimeout(d._t);d._t=setTimeout(()=>d.classList.remove('show'),1200);}
+  scheduleHistory();
+  // cloud sync
+  scheduleCloudPush(k);
+}
 function getIndex(){try{return JSON.parse(localStorage.getItem('pontaj:index'))||[]}catch{return[]}}
+
+function setCloudDot(state,msg){
+  const el=$('#cloud-dot'); if(!el) return;
+  el.classList.remove('ok','err');
+  if(state==='ok'){ el.classList.add('ok'); el.textContent='● sincronizat'; }
+  else if(state==='sync'){ el.textContent='● se sincronizează…'; }
+  else if(state==='err'){ el.classList.add('err'); el.textContent='● offline'; if(msg) el.title=msg; }
+  else { el.textContent='● sincronizat'; }
+}
+
+function scheduleCloudPush(k){
+  if(!currentUser) return;
+  clearTimeout(cloudSyncTimer);
+  setCloudDot('sync');
+  cloudSyncTimer=setTimeout(()=> cloudPushWeek(k), 700);
+}
+
+async function cloudPushWeek(k){
+  if(!currentUser) return;
+  const data = loadWeek(k);
+  // nu trimite saptamani complet goale? totusi trimite ca sa pastreze index; daca e goala complet, sterge din cloud
+  const hasData = Object.values(data).some(v=>v.s||v.p||v.e);
+  try{
+    if(!hasData){
+      // daca e goala si exista in cloud, stergem
+      const { error } = await supabase.from('pontaj_weeks').delete().eq('user_id', currentUser.id).eq('week_key', k);
+      if(error) throw error;
+    } else {
+      const { error } = await supabase.from('pontaj_weeks').upsert({ user_id: currentUser.id, week_key: k, data }, { onConflict: 'user_id,week_key' });
+      if(error) throw error;
+    }
+    setCloudDot('ok');
+  }catch(e){
+    console.warn('cloud push failed', e);
+    setCloudDot('err', e.message||'eroare');
+  }
+}
+
+async function cloudDeleteWeek(k){
+  if(!currentUser) return;
+  try{
+    const { error } = await supabase.from('pontaj_weeks').delete().eq('user_id', currentUser.id).eq('week_key', k);
+    if(error) throw error;
+    setCloudDot('ok');
+  }catch(e){
+    console.warn('cloud delete failed', e);
+    setCloudDot('err', e.message);
+  }
+}
+
+async function cloudPull(){
+  if(!currentUser || isCloudPulling) return;
+  isCloudPulling=true;
+  setCloudDot('sync');
+  try{
+    const { data, error } = await supabase.from('pontaj_weeks').select('week_key,data,updated_at').order('week_key', {ascending:false}).limit(52);
+    if(error) throw error;
+    const idx=[];
+    (data||[]).forEach(row=>{
+      if(!isWeekKey(row.week_key)) return;
+      // salveaza in localStorage; cloud e sursa de adevar dupa login
+      try{
+        const clean={};
+        Object.keys(row.data||{}).forEach(di=>{
+          if(!/^[0-6]$/.test(di)) return;
+          clean[di]=sanitizeDay(row.data[di]);
+        });
+        localStorage.setItem('pontaj:'+row.week_key, JSON.stringify(clean));
+        idx.push(row.week_key);
+      }catch{}
+    });
+    // pastreaza si saptamanile locale care nu sunt inca in cloud (offline create) - mergem in push separat
+    const localIdx=getIndex();
+    localIdx.forEach(k=>{
+      if(!idx.includes(k) && isWeekKey(k)){
+        const localData=loadWeek(k);
+        const hasData=Object.values(localData).some(v=>v.s||v.p||v.e);
+        if(hasData && !idx.includes(k)){
+          // push in background
+          cloudPushWeek(k);
+          idx.push(k);
+        }
+      }
+    });
+    idx.sort().reverse();
+    localStorage.setItem('pontaj:index', JSON.stringify(idx.slice(0,52)));
+    setCloudDot('ok');
+    render(); // re-render cu date din cloud
+  }catch(e){
+    console.warn('cloud pull failed', e);
+    setCloudDot('err', e.message);
+    render();
+  }finally{
+    isCloudPulling=false;
+  }
+}
 
 function render(){
   const m=new Date(monday);const end=new Date(m);end.setDate(end.getDate()+6);
-  $('#week-range').textContent=`${fmtDate(m)} – ${fmtDate(end)} ${end.getFullYear()}`;
+  const wr=$('#week-range'); if(wr) wr.textContent=`${fmtDate(m)} – ${fmtDate(end)} ${end.getFullYear()}`;
   const wk=weekKey(monday);
-  $('#week-label').textContent='Săpt. '+wk;
+  const wl=$('#week-label'); if(wl) wl.textContent='Săpt. '+wk;
   try{
     if(!localStorage.getItem('pontaj:'+wk)){
       const lk=legacyWeekKey(monday);
@@ -51,6 +165,7 @@ function render(){
   }catch{}
   const saved=loadWeek(wk);
   const todayStr=new Date().toDateString();
+  if(!daysEl) return;
   daysEl.innerHTML='';
   for(let i=0;i<7;i++){
     const dt=new Date(m);dt.setDate(dt.getDate()+i);
@@ -81,10 +196,11 @@ function recalc(){
     out.textContent=min>0?`${roDec(min/60)} (${hm(min)})`:'—';
     card.querySelectorAll('.chip').forEach(c=>{const on=String(p||'')===c.dataset.p;c.classList.toggle('on',on);c.setAttribute('aria-pressed',on?'true':'false');});
   });
-  $('#total-dec').textContent=roDec(total/60);
-  $('#total-hm').textContent=`${hm(total)} • ${days} ${days===1?'zi':'zile'}`;
+  const td=$('#total-dec'); if(td) td.textContent=roDec(total/60);
+  const th=$('#total-hm'); if(th) th.textContent=`${hm(total)} • ${days} ${days===1?'zi':'zile'}`;
 }
 function renderHistory(){
+  if(!histEl) return;
   const idx=getIndex().filter(isWeekKey);histEl.innerHTML=idx.length?'':'<li class="muted">Nicio săptămână salvată încă.</li>';
   idx.slice(0,12).forEach(k=>{
     let tot=0;const d=loadWeek(k);Object.values(d).forEach(raw=>{const v=sanitizeDay(raw);tot+=calcDay(v.s,v.p,v.e);});
@@ -93,7 +209,7 @@ function renderHistory(){
     const sub=document.createElement('span');sub.className='muted';sub.textContent=`${roDec(tot/60)} • ${hm(tot)}`;
     const left=document.createElement('span');left.append(b,document.createElement('br'),sub);
     const open=document.createElement('button');open.className='btn small';open.textContent='Deschide';open.setAttribute('aria-label','Deschide săptămâna '+k);open.onclick=()=>{const[y,w]=k.split('-W');monday=mondayFromWeek(+y,+w);render();window.scrollTo({top:0,behavior:'smooth'});};
-    const del=document.createElement('button');del.className='btn small';del.textContent='✕';del.setAttribute('aria-label','Șterge săptămâna '+k);del.onclick=()=>{if(!confirm('Ștergi '+k+'?'))return;localStorage.removeItem('pontaj:'+k);localStorage.setItem('pontaj:index',JSON.stringify(getIndex().filter(x=>x!==k)));renderHistory();};
+    const del=document.createElement('button');del.className='btn small';del.textContent='✕';del.setAttribute('aria-label','Șterge săptămâna '+k);del.onclick=async()=>{if(!confirm('Ștergi '+k+'?'))return;localStorage.removeItem('pontaj:'+k);localStorage.setItem('pontaj:index',JSON.stringify(getIndex().filter(x=>x!==k)));await cloudDeleteWeek(k);renderHistory();recalc();if(weekKey(monday)===k) render();};
     const right=document.createElement('span');right.append(open,' ',del);
     li.append(left,right);
     histEl.appendChild(li);
@@ -101,12 +217,12 @@ function renderHistory(){
 }
 function mondayFromWeek(y,w){const jan4=new Date(y,0,4);const d=getMonday(jan4);d.setDate(d.getDate()+(w-1)*7);return d;}
 
-$('#btn-prev').onclick=()=>{monday.setDate(monday.getDate()-7);render();};
-$('#btn-next').onclick=()=>{monday.setDate(monday.getDate()+7);render();};
-$('#btn-today').onclick=()=>{monday=getMonday(new Date());render();};
-$('#btn-clear').onclick=()=>{if(!confirm('Ștergi toate orele din săptămâna afișată?'))return;try{localStorage.removeItem('pontaj:'+weekKey(monday));const lk=legacyWeekKey(monday);if(lk)localStorage.removeItem('pontaj:'+lk);}catch{}render();};
-$('#btn-copy-weekdays').onclick=()=>{const f=document.querySelectorAll('.day')[0];const s=f.querySelector('.in-s').value,p=f.querySelector('.in-p').value,e=f.querySelector('.in-e').value;document.querySelectorAll('.day').forEach((c,i)=>{if(i>=1&&i<=4){c.querySelector('.in-s').value=s;c.querySelector('.in-p').value=p;c.querySelector('.in-e').value=e;}});recalc();saveWeek();};
-$('#btn-export').onclick=()=>{
+$('#btn-prev')&&($('#btn-prev').onclick=()=>{monday.setDate(monday.getDate()-7);render();});
+$('#btn-next')&&($('#btn-next').onclick=()=>{monday.setDate(monday.getDate()+7);render();});
+$('#btn-today')&&($('#btn-today').onclick=()=>{monday=getMonday(new Date());render();});
+$('#btn-clear')&&($('#btn-clear').onclick=async()=>{if(!confirm('Ștergi toate orele din săptămâna afișată?'))return;const k=weekKey(monday);try{localStorage.removeItem('pontaj:'+k);const lk=legacyWeekKey(monday);if(lk)localStorage.removeItem('pontaj:'+lk);}catch{} await cloudDeleteWeek(k); render();});
+$('#btn-copy-weekdays')&&($('#btn-copy-weekdays').onclick=()=>{const f=document.querySelectorAll('.day')[0];const s=f.querySelector('.in-s').value,p=f.querySelector('.in-p').value,e=f.querySelector('.in-e').value;document.querySelectorAll('.day').forEach((c,i)=>{if(i>=1&&i<=4){c.querySelector('.in-s').value=s;c.querySelector('.in-p').value=p;c.querySelector('.in-e').value=e;}});recalc();saveWeek();});
+$('#btn-export')&&($('#btn-export').onclick=()=>{
   const data={};
   for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf('pontaj:')===0){try{data[k]=JSON.parse(localStorage.getItem(k));}catch{data[k]=localStorage.getItem(k);}}}
   data._exportedAt=new Date().toISOString();data._app='pontaj';
@@ -115,13 +231,13 @@ $('#btn-export').onclick=()=>{
   const d=new Date();const stamp=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   a.download='pontaj-backup-'+stamp+'.json';document.body.appendChild(a);a.click();
   setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
-};
-$('#btn-import').onclick=()=>$('#file-import').click();
-$('#file-import').onchange=(ev)=>{
+});
+$('#btn-import')&&($('#btn-import').onclick=()=>$('#file-import').click());
+$('#file-import')&&($('#file-import').onchange=(ev)=>{
   const f=ev.target.files&&ev.target.files[0];if(!f)return;
   if(f.size>1024*1024){alert('Fișierul e prea mare (max 1 MB).');ev.target.value='';return;}
   const rd=new FileReader();
-  rd.onload=()=>{
+  rd.onload=async()=>{
     try{
       const data=JSON.parse(rd.result);
       if(!data||typeof data!=='object')throw new Error('bad');
@@ -144,29 +260,40 @@ $('#file-import').onchange=(ev)=>{
       const good=Object.keys(clean);
       if(!good.length){alert('Fișierul nu conține intrări valide.');return;}
       if(!confirm('Import '+good.length+' intrări?'+(skipped?' ('+skipped+' ignorate ca invalide)':'')+' Datele existente cu aceeași cheie se suprascriu.'))return;
-      good.forEach(k=>localStorage.setItem(k,JSON.stringify(clean[k])));
+      for(const k of good){
+        localStorage.setItem(k,JSON.stringify(clean[k]));
+        await cloudPushWeek(k.slice(7));
+      }
+      // rebuild index
+      const idx=getIndex();
+      good.forEach(k=>{
+        const wk=k.slice(7);
+        if(!idx.includes(wk)) idx.push(wk);
+      });
+      idx.sort().reverse();
+      localStorage.setItem('pontaj:index', JSON.stringify(idx.slice(0,52)));
       render();alert('Import gata: '+good.length+' intrări.');
     }catch{alert('Fișier invalid. Alege un JSON exportat din Pontaj.');}
     ev.target.value='';
   };
   rd.readAsText(f);
-};
-$('#btn-print').onclick=()=>{
+});
+$('#btn-print')&&($('#btn-print').onclick=()=>{
   const m=new Date(monday);let rows='',tot=0;
   for(let i=0;i<7;i++){const card=document.querySelectorAll('.day')[i];const raw={s:card.querySelector('.in-s').value,p:card.querySelector('.in-p').value,e:card.querySelector('.in-e').value};const v=sanitizeDay(raw);const s=v.s||'—',p=v.p||'0',e=v.e||'—';const min=calcDay(v.s,v.p,v.e);tot+=min;const dt=new Date(m);dt.setDate(dt.getDate()+i);
     rows+=`<tr><td>${esc(DAYS[i])} ${esc(fmtDate(dt))}</td><td>${esc(s)}</td><td>${esc(p)} min</td><td>${esc(e)}</td><td>${min>0?esc(roDec(min/60)+' ('+hm(min)+')'):'—'}</td></tr>`;}
   $('#print-area').innerHTML=`<h1>Pontaj ${esc(weekKey(monday))} — ${esc($('#week-range').textContent)}</h1><p>Total: <b>${esc(roDec(tot/60)+' ('+hm(tot)+')')}</b></p><table><tr><th>Zi</th><th>Început</th><th>Pauză</th><th>Sfârșit</th><th>Total</th></tr>${rows}</table>`;
   window.print();
-};
+});
 
 // theme
-function setTheme(t){document.documentElement.dataset.theme=t;localStorage.setItem('pontaj:theme',t);$('#btn-theme').textContent=t==='dark'?'🌙':'☀️';$('#meta-theme').content=t==='dark'?'#0f172a':'#ffffff';}
-$('#btn-theme').onclick=()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
+function setTheme(t){document.documentElement.dataset.theme=t;localStorage.setItem('pontaj:theme',t);const b=$('#btn-theme'); if(b) b.textContent=t==='dark'?'🌙':'☀️';const mt=$('#meta-theme'); if(mt) mt.content=t==='dark'?'#0f172a':'#ffffff';}
+$('#btn-theme')&&($('#btn-theme').onclick=()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark'));
 setTheme(localStorage.getItem('pontaj:theme')||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'));
 
 // install
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('#btn-install').hidden=false;});
-$('#btn-install').onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('#btn-install').hidden=true;};
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;const b=$('#btn-install'); if(b) b.hidden=false;});
+$('#btn-install')&&($('#btn-install').onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('#btn-install').hidden=true;});
 
 // update disponibil (PWA)
 (function swUpdate(){
@@ -198,8 +325,7 @@ $('#btn-install').onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.pro
   }).catch(()=>{});
 })();
 
-
-// ---------- ceas analogic (rotund, 24h) — păstrat, cu suport tastatură ----------
+// ---------- ceas analogic ----------
 let ckTarget=null,ckH=8,ckM=0,ckMode='h',ckReturnFocus=null;
 const ckPad=n=>String(n).padStart(2,'0');
 function ckClose(returnFocus){
@@ -228,10 +354,11 @@ function ckHand(ang,r){
   return `<line x1="130" y1="130" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" class="ck-hand"/><circle cx="130" cy="130" r="5" class="ck-handdot"/>`;
 }
 function ckDraw(){
-  $('#ck-h').textContent=ckPad(ckH);$('#ck-m').textContent=ckPad(ckM);
-  $('#ck-h').classList.toggle('on',ckMode==='h');
-  $('#ck-m').classList.toggle('on',ckMode==='m');
-  $('#ck-fine').hidden=ckMode!=='m';
+  const ch=$('#ck-h'); if(ch) ch.textContent=ckPad(ckH);
+  const cm=$('#ck-m'); if(cm) cm.textContent=ckPad(ckM);
+  if(ch) ch.classList.toggle('on',ckMode==='h');
+  if(cm) cm.classList.toggle('on',ckMode==='m');
+  const fine=$('#ck-fine'); if(fine) fine.hidden=ckMode!=='m';
   const cx=130,cy=130;let h='<circle cx="130" cy="130" r="124" class="ck-bg"/>';
   if(ckMode==='h'){
     const outer=[0,13,14,15,16,17,18,19,20,21,22,23],inner=[12,1,2,3,4,5,6,7,8,9,10,11];
@@ -250,7 +377,7 @@ function ckDraw(){
     }
     h+=ckHand((ckM/60)*Math.PI*2-Math.PI/2,96);
   }
-  $('#ck-face').innerHTML=h;
+  const face=$('#ck-face'); if(face) face.innerHTML=h;
 }
 function ckPick(v){
   if(ckMode==='h'){ckH=(+v)%24;ckMode='m';}
@@ -258,24 +385,131 @@ function ckPick(v){
   ckDraw();
   try{const sel=$('#ck-face .ck-tap[tabindex]');if(sel)sel.focus();}catch{}
 }
-$('#ck-face').addEventListener('click',ev=>{
+$('#ck-face')&&$('#ck-face').addEventListener('click',ev=>{
   const g=ev.target.closest('.ck-tap');if(!g)return;
   ckPick(g.dataset.v);
 });
-$('#ck-face').addEventListener('keydown',ev=>{
+$('#ck-face')&&$('#ck-face').addEventListener('keydown',ev=>{
   const g=ev.target.closest('.ck-tap');if(!g)return;
   if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();ckPick(g.dataset.v);}
 });
-$('#ck-h').onclick=()=>{ckMode='h';ckDraw();};
-$('#ck-h').addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();ckMode='h';ckDraw();}});
-$('#ck-m').onclick=()=>{ckMode='m';ckDraw();};
-$('#ck-m').addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();ckMode='m';ckDraw();}});
-$('#ck-dec').onclick=()=>{ckM=(ckM+59)%60;ckDraw();};
-$('#ck-inc').onclick=()=>{ckM=(ckM+1)%60;ckDraw();};
-$('#ck-cancel').onclick=()=>ckClose(true);
-$('#ck-clear').onclick=()=>{if(ckTarget){ckTarget.value='';ckTarget.dispatchEvent(new Event('input',{bubbles:true}));}ckClose(true);};
-$('#ck-ok').onclick=()=>{if(ckTarget){ckTarget.value=ckPad(ckH)+':'+ckPad(ckM);ckTarget.dispatchEvent(new Event('input',{bubbles:true}));}ckClose(true);};
-try{$('#dlg-clock').addEventListener('close',()=>{if(ckReturnFocus&&document.contains(ckReturnFocus)){try{ckReturnFocus.focus();}catch{}}ckReturnFocus=null;});}catch{}
+$('#ck-h')&&($('#ck-h').onclick=()=>{ckMode='h';ckDraw();});
+$('#ck-h')&&$('#ck-h').addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();ckMode='h';ckDraw();}});
+$('#ck-m')&&($('#ck-m').onclick=()=>{ckMode='m';ckDraw();});
+$('#ck-m')&&$('#ck-m').addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();ckMode='m';ckDraw();}});
+$('#ck-dec')&&($('#ck-dec').onclick=()=>{ckM=(ckM+59)%60;ckDraw();});
+$('#ck-inc')&&($('#ck-inc').onclick=()=>{ckM=(ckM+1)%60;ckDraw();});
+$('#ck-cancel')&&($('#ck-cancel').onclick=()=>ckClose(true));
+$('#ck-clear')&&($('#ck-clear').onclick=()=>{if(ckTarget){ckTarget.value='';ckTarget.dispatchEvent(new Event('input',{bubbles:true}));}ckClose(true);});
+$('#ck-ok')&&($('#ck-ok').onclick=()=>{if(ckTarget){ckTarget.value=ckPad(ckH)+':'+ckPad(ckM);ckTarget.dispatchEvent(new Event('input',{bubbles:true}));}ckClose(true);});
+try{$('#dlg-clock')&&$('#dlg-clock').addEventListener('close',()=>{if(ckReturnFocus&&document.contains(ckReturnFocus)){try{ckReturnFocus.focus();}catch{}}ckReturnFocus=null;});}catch{}
 
+// ---- AUTH UI ----
+function setAuthError(msg){
+  const el=$('#auth-error');
+  if(!el) return;
+  el.textContent=msg||'';
+  el.style.display=msg?'block':'none';
+}
+function updateAuthTabs(){
+  $('#tab-signin')&&$('#tab-signin').classList.toggle('on', authMode==='signin');
+  $('#tab-signup')&&$('#tab-signup').classList.toggle('on', authMode==='signup');
+  const btn=$('#btn-auth'); if(btn) btn.textContent=authMode==='signup'?'Creează cont':'Intră în cont';
+}
+$('#tab-signin')&&($('#tab-signin').onclick=()=>{authMode='signin';updateAuthTabs();setAuthError('');});
+$('#tab-signup')&&($('#tab-signup').onclick=()=>{authMode='signup';updateAuthTabs();setAuthError('');});
 
-render();
+$('#form-auth')&&$('#form-auth').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  setAuthError('');
+  const email=$('#auth-email')?.value.trim();
+  const pass=$('#auth-pass')?.value;
+  if(!email || !pass) return setAuthError('Completează emailul și parola.');
+  if(pass.length<6) return setAuthError('Parola trebuie să aibă minim 6 caractere.');
+  const btn=$('#btn-auth'); const orig=btn?btn.textContent:'';
+  if(btn){btn.disabled=true; btn.textContent='Se procesează…';}
+  try{
+    let res;
+    if(authMode==='signup'){
+      res= await supabase.auth.signUp({ email, password: pass });
+      if(res.error) throw res.error;
+      // auto sign-in daca autoconfirm e activ
+      if(!res.data.session){
+        setAuthError('Cont creat! Verifică emailul dacă e nevoie, apoi intră în cont.');
+        authMode='signin'; updateAuthTabs();
+        return;
+      }
+    } else {
+      res= await supabase.auth.signInWithPassword({ email, password: pass });
+      if(res.error) throw res.error;
+    }
+    // onAuthStateChange va face restul
+  }catch(err){
+    setAuthError(err.message||'Eroare la autentificare');
+  }finally{
+    if(btn){btn.disabled=false; btn.textContent=orig;}
+  }
+});
+
+$('#btn-google')&&$('#btn-google').addEventListener('click', async ()=>{
+  setAuthError('');
+  const btn=$('#btn-google'); if(btn) btn.disabled=true;
+  try{
+    const { error } = await supabase.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: window.location.origin + window.location.pathname } });
+    if(error) throw error;
+  }catch(err){
+    setAuthError(err.message||'Google login indisponibil. Configurează Google în Supabase Dashboard → Auth → Providers.');
+    if(btn) btn.disabled=false;
+  }
+});
+
+$('#btn-logout')&&$('#btn-logout').addEventListener('click', async ()=>{
+  await supabase.auth.signOut();
+  // curata local cache de pontaj la logout pentru privacy? pastram dar nu afisam
+});
+
+function showAuthView(){
+  const a=$('#auth-card'), c=$('#app-content'), l=$('#auth-loading'), ub=$('#user-bar');
+  if(a) a.hidden=false;
+  if(c) c.hidden=true;
+  if(l) l.hidden=true;
+  if(ub) ub.hidden=true;
+}
+function showAppView(user){
+  const a=$('#auth-card'), c=$('#app-content'), l=$('#auth-loading'), ub=$('#user-bar'), ue=$('#user-email');
+  if(a) a.hidden=true;
+  if(c) c.hidden=false;
+  if(l) l.hidden=true;
+  if(ub) ub.hidden=false;
+  if(ue) ue.textContent=user?.email||'';
+}
+
+async function initAuth(){
+  updateAuthTabs();
+  const { data } = await supabase.auth.getSession();
+  currentUser=data.session?.user||null;
+  if(currentUser){
+    showAppView(currentUser);
+    await cloudPull();
+  } else {
+    showAuthView();
+  }
+  supabase.auth.onAuthStateChange(async (_event, session)=>{
+    currentUser=session?.user||null;
+    if(currentUser){
+      showAppView(currentUser);
+      await cloudPull();
+    } else {
+      showAuthView();
+    }
+  });
+}
+
+initAuth();
+
+// initial render va fi facut dupa cloudPull sau daca nu e user nu conteaza
+// fallback: daca auth-loading ramane, ascunde dupa 3 sec
+setTimeout(()=>{
+  const l=$('#auth-loading');
+  if(l && !l.hidden && !currentUser) showAuthView();
+}, 3000);
