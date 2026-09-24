@@ -451,15 +451,51 @@ $('#form-auth')&&$('#form-auth').addEventListener('submit', async (e)=>{
   }
 });
 
-$('#btn-google')&&$('#btn-google').addEventListener('click', async ()=>{
+$('#btn-forgot')&&$('#btn-forgot').addEventListener('click', async ()=>{
+  const email=$('#auth-email')?.value.trim();
+  if(!email) return setAuthError('Scrie emailul mai sus, apoi apasă „Ai uitat parola?”');
   setAuthError('');
-  const btn=$('#btn-google'); if(btn) btn.disabled=true;
+  const btn=$('#btn-forgot');
+  if(btn) btn.disabled=true;
   try{
-    const { error } = await supabase.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: window.location.origin + window.location.pathname } });
+    const redirectTo = window.location.origin + window.location.pathname;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
     if(error) throw error;
+    setAuthError('Ți-am trimis email de resetare. Verifică inbox (și Spam).');
   }catch(err){
-    setAuthError(err.message||'Google login indisponibil. Configurează Google în Supabase Dashboard → Auth → Providers.');
+    setAuthError(err.message||'Nu s-a putut trimite emailul.');
+  }finally{
     if(btn) btn.disabled=false;
+  }
+});
+
+function setRecoveryError(msg){
+  const el=$('#recovery-error');
+  if(!el) return;
+  el.textContent=msg||'';
+  el.style.display=msg?'block':'none';
+}
+$('#form-recovery')&&$('#form-recovery').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  setRecoveryError('');
+  const p1=$('#new-pass')?.value||'';
+  const p2=$('#new-pass2')?.value||'';
+  if(p1.length<6) return setRecoveryError('Parola trebuie să aibă minim 6 caractere.');
+  if(p1!==p2) return setRecoveryError('Parolele nu coincid.');
+  const btn=e.target.querySelector('button');
+  if(btn){btn.disabled=true; btn.textContent='Se salvează…';}
+  try{
+    const { error } = await supabase.auth.updateUser({ password: p1 });
+    if(error) throw error;
+    setRecoveryError('Parola a fost schimbată! Te redirecționez…');
+    setTimeout(()=>{
+      const rc=$('#recovery-card'); if(rc) rc.hidden=true;
+      // va face showAppView automat
+    }, 1200);
+  }catch(err){
+    setRecoveryError(err.message||'Eroare la schimbarea parolei.');
+  }finally{
+    if(btn){btn.disabled=false; btn.textContent='Salvează parola';}
   }
 });
 
@@ -469,18 +505,20 @@ $('#btn-logout')&&$('#btn-logout').addEventListener('click', async ()=>{
 });
 
 function showAuthView(){
-  const a=$('#auth-card'), c=$('#app-content'), l=$('#auth-loading'), ub=$('#user-bar');
+  const a=$('#auth-card'), c=$('#app-content'), l=$('#auth-loading'), ub=$('#user-bar'), rc=$('#recovery-card');
   if(a) a.hidden=false;
   if(c) c.hidden=true;
   if(l) l.hidden=true;
   if(ub) ub.hidden=true;
+  if(rc) rc.hidden=true;
 }
 function showAppView(user){
-  const a=$('#auth-card'), c=$('#app-content'), l=$('#auth-loading'), ub=$('#user-bar'), ue=$('#user-email');
+  const a=$('#auth-card'), c=$('#app-content'), l=$('#auth-loading'), ub=$('#user-bar'), ue=$('#user-email'), rc=$('#recovery-card');
   if(a) a.hidden=true;
   if(c) c.hidden=false;
   if(l) l.hidden=true;
   if(ub) ub.hidden=false;
+  if(rc) rc.hidden=true;
   if(ue) ue.textContent=user?.email||'';
 }
 
@@ -494,9 +532,17 @@ async function initAuth(){
   } else {
     showAuthView();
   }
-  supabase.auth.onAuthStateChange(async (_event, session)=>{
+  supabase.auth.onAuthStateChange(async (event, session)=>{
+    if(event==='PASSWORD_RECOVERY'){
+      const a=$('#auth-card'), l=$('#auth-loading'), c=$('#app-content'), rc=$('#recovery-card');
+      if(a) a.hidden=true; if(l) l.hidden=true; if(c) c.hidden=true; if(rc) rc.hidden=false;
+      return;
+    }
     currentUser=session?.user||null;
     if(currentUser){
+      // daca suntem in recovery, nu face pull inca
+      const rc=$('#recovery-card');
+      if(rc && !rc.hidden) return;
       showAppView(currentUser);
       await cloudPull();
     } else {

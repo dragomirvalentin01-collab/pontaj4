@@ -9,7 +9,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="styles.css?v=16">
+<link rel="stylesheet" href="styles.css?v=17">
 <script type="importmap">{"imports":{"@supabase/supabase-js":"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"}}</script>
 </head>
 <body>
@@ -23,6 +23,18 @@
 </header>
 
 <main>
+  <!-- Recovery - resetare parola (cand vii din email) -->
+  <section id="recovery-card" class="card auth-card" hidden>
+    <h2>🔑 Alege o parolă nouă</h2>
+    <p class="muted small">Ai accesat linkul de resetare. Setează noua parolă.</p>
+    <div id="recovery-error" class="error-box"></div>
+    <form id="form-recovery" class="auth-form">
+      <label>Parolă nouă<input id="new-pass" type="password" placeholder="minim 6 caractere" required></label>
+      <label>Confirmă parola<input id="new-pass2" type="password" placeholder="repetă parola" required></label>
+      <button type="submit" class="btn primary" style="width:100%">Salvează parola</button>
+    </form>
+  </section>
+
   <!-- Auth - vizibil doar când nu ești logat -->
   <section id="auth-card" class="card auth-card" hidden>
     <h2>🔐 Conectează-te ca să nu pierzi datele</h2>
@@ -36,9 +48,8 @@
       <label>Email<input id="auth-email" type="email" placeholder="tu@exemplu.com" autocomplete="email" required></label>
       <label>Parolă<input id="auth-pass" type="password" placeholder="minim 6 caractere" autocomplete="current-password" required></label>
       <button id="btn-auth" type="submit" class="btn primary" style="width:100%">Intră în cont</button>
+      <button id="btn-forgot" type="button" class="link" style="text-align:center;padding:6px">Ai uitat parola?</button>
     </form>
-    <div class="auth-divider"><span>sau</span></div>
-    <button id="btn-google" class="google-btn" type="button"> <span>🔵</span> Continuă cu Google</button>
     <p class="muted small center" style="margin-top:10px">Prin login accepți sincronizarea datelor pontajului în cloud (doar tu le vezi).</p>
   </section>
 
@@ -99,7 +110,7 @@
 <div id="print-area"></div>
 <div id="sw-toast" class="sw-toast" hidden><span>Versiune nouă disponibilă.</span><button id="sw-reload" class="btn small primary" type="button">Reîncarcă</button></div>
 
-<script type="module" src="app.js?v=16"></script>
+<script type="module" src="app.js?v=17"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));
