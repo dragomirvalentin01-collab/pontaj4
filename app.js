@@ -547,28 +547,21 @@ async function handleRecoveryCode(){
 }
 async function initAuth(){
   updateAuthTabs();
-  // daca URL contine recovery/code, trateaza ca recovery inainte de getSession
-  if(isRecoveryUrl()){
+  const wasRecovery = isRecoveryUrl();
+  if(wasRecovery){
     await handleRecoveryCode();
-    // dupa exchange, arata cardul recovery
     const rc=$('#recovery-card'), a=$('#auth-card'), l=$('#auth-loading'), c=$('#app-content');
     if(rc) rc.hidden=false;
     if(a) a.hidden=true; if(l) l.hidden=true; if(c) c.hidden=true;
-    // mai incearca sa ia sesiunea dupa exchange
-    const { data: recData } = await supabase.auth.getSession();
-    currentUser=recData.session?.user||null;
-    if(!currentUser){
-      // asteapta onAuthStateChange sa vina
-    }
+    // incearca sa ia sesiunea dupa exchange, dar ramai in recovery pana schimbi parola
+    try{
+      const { data: recData } = await supabase.auth.getSession();
+      currentUser=recData.session?.user||null;
+    }catch{}
+    return;
   }
   const { data } = await supabase.auth.getSession();
   currentUser=data.session?.user||null;
-  // daca e recovery URL, forteaza recovery view chiar daca avem sesiune
-  if(isRecoveryUrl() && currentUser){
-    const rc=$('#recovery-card'), a=$('#auth-card'), l=$('#auth-loading'), c=$('#app-content');
-    if(rc) rc.hidden=false; if(a) a.hidden=true; if(l) l.hidden=true; if(c) c.hidden=true;
-    return;
-  }
   if(currentUser){
     showAppView(currentUser);
     await cloudPull();
