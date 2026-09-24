@@ -487,11 +487,15 @@ $('#form-recovery')&&$('#form-recovery').addEventListener('submit', async (e)=>{
   try{
     const { error } = await supabase.auth.updateUser({ password: p1 });
     if(error) throw error;
-    setRecoveryError('Parola a fost schimbată! Te redirecționez…');
-    setTimeout(()=>{
+    setRecoveryError('Parola a fost schimbată! Te loghez…');
+    // curata URL de tokenuri
+    try{ window.history.replaceState({}, document.title, window.location.pathname); }catch{}
+    setTimeout(async ()=>{
       const rc=$('#recovery-card'); if(rc) rc.hidden=true;
-      // va face showAppView automat
-    }, 1200);
+      const { data } = await supabase.auth.getSession();
+      currentUser=data.session?.user||null;
+      if(currentUser){ showAppView(currentUser); await cloudPull(); }
+    }, 900);
   }catch(err){
     setRecoveryError(err.message||'Eroare la schimbarea parolei.');
   }finally{
@@ -522,10 +526,49 @@ function showAppView(user){
   if(ue) ue.textContent=user?.email||'';
 }
 
+function isRecoveryUrl(){
+  const href = window.location.href;
+  const hash = window.location.hash || '';
+  const search = window.location.search || '';
+  return href.includes('type=recovery') || hash.includes('type=recovery') || search.includes('code=') || hash.includes('access_token');
+}
+async function handleRecoveryCode(){
+  const url = new URL(window.location.href);
+  const code = url.searchParams.get('code');
+  if(code){
+    try{
+      const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
+      if(error) console.warn('exchangeCode error', error);
+      // curata URL-ul de code
+      url.searchParams.delete('code');
+      window.history.replaceState({}, document.title, url.pathname + url.search + window.location.hash);
+    }catch(e){ console.warn('exchange failed', e); }
+  }
+}
 async function initAuth(){
   updateAuthTabs();
+  // daca URL contine recovery/code, trateaza ca recovery inainte de getSession
+  if(isRecoveryUrl()){
+    await handleRecoveryCode();
+    // dupa exchange, arata cardul recovery
+    const rc=$('#recovery-card'), a=$('#auth-card'), l=$('#auth-loading'), c=$('#app-content');
+    if(rc) rc.hidden=false;
+    if(a) a.hidden=true; if(l) l.hidden=true; if(c) c.hidden=true;
+    // mai incearca sa ia sesiunea dupa exchange
+    const { data: recData } = await supabase.auth.getSession();
+    currentUser=recData.session?.user||null;
+    if(!currentUser){
+      // asteapta onAuthStateChange sa vina
+    }
+  }
   const { data } = await supabase.auth.getSession();
   currentUser=data.session?.user||null;
+  // daca e recovery URL, forteaza recovery view chiar daca avem sesiune
+  if(isRecoveryUrl() && currentUser){
+    const rc=$('#recovery-card'), a=$('#auth-card'), l=$('#auth-loading'), c=$('#app-content');
+    if(rc) rc.hidden=false; if(a) a.hidden=true; if(l) l.hidden=true; if(c) c.hidden=true;
+    return;
+  }
   if(currentUser){
     showAppView(currentUser);
     await cloudPull();
@@ -533,7 +576,8 @@ async function initAuth(){
     showAuthView();
   }
   supabase.auth.onAuthStateChange(async (event, session)=>{
-    if(event==='PASSWORD_RECOVERY'){
+    console.log('auth event', event);
+    if(event==='PASSWORD_RECOVERY' || (isRecoveryUrl() && session)){
       const a=$('#auth-card'), l=$('#auth-loading'), c=$('#app-content'), rc=$('#recovery-card');
       if(a) a.hidden=true; if(l) l.hidden=true; if(c) c.hidden=true; if(rc) rc.hidden=false;
       return;
