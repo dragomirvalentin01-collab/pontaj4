@@ -9,8 +9,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="styles.css?v=19">
-<script type="importmap">{"imports":{"@supabase/supabase-js":"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"}}</script>
+<link rel="stylesheet" href="styles.css?v=20">
 </head>
 <body>
 <header class="topbar">
@@ -92,13 +91,13 @@
       <ul id="history" class="history"></ul>
     </section>
 
-    <p class="muted small center">☁️ Datele sunt legate de contul tău • Ștergerea cache-ului nu le mai șterge<br>8 ore 30 min → <b>8,50 h</b></p>
-  </div>
+    <p class="muted small center">☁️ Datele sunt legate de contul tău • Ștergerea cache-ului nu le mai șterge</p>
 
-  <section class="card" id="instalare-ajutor">
-    <h2>📲 Instalare pe Android</h2>
-    <p class="muted small">1. Deschide linkul HTTPS în <b>Chrome</b> (nu din Facebook/WhatsApp viewer).<br>2. Meniu ⋮ → <b>Adaugă pe ecranul de pornire</b> / <b>Instalează aplicația</b>.<br>3. Dacă nu apare, folosește butonul 📲 Instalează de sus.</p>
-  </section>
+    <section class="card" id="instalare-ajutor">
+      <h2>📲 Instalare pe Android</h2>
+      <p class="muted small">1. Deschide linkul HTTPS în <b>Chrome</b> (nu din Facebook/WhatsApp viewer).<br>2. Meniu ⋮ → <b>Adaugă pe ecranul de pornire</b> / <b>Instalează aplicația</b>.<br>3. Dacă nu apare, folosește butonul 📲 Instalează de sus.</p>
+    </section>
+  </div>
 </main>
 
 <dialog id="dlg-clock" aria-label="Alege ora">
@@ -110,7 +109,7 @@
 <div id="print-area"></div>
 <div id="sw-toast" class="sw-toast" hidden><span>Versiune nouă disponibilă.</span><button id="sw-reload" class="btn small primary" type="button">Reîncarcă</button></div>
 
-<script type="module" src="app.js?v=19"></script>
+<script type="module" src="app.js?v=20"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));

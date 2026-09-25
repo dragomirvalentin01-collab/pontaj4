@@ -61,10 +61,6 @@ main{max-width:640px;margin:0 auto;padding:12px;display:grid;gap:12px}
 .auth-form{display:grid;gap:10px}
 .auth-form label{font-size:13px;color:var(--text)}
 .auth-form input{font-size:15px}
-.auth-divider{display:flex;align-items:center;gap:10px;margin:8px 0;color:var(--muted);font-size:13px}
-.auth-divider::before,.auth-divider::after{content:"";flex:1;height:1px;background:var(--line)}
-.google-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:#fff;color:#1f2937;font-weight:700;cursor:pointer}
-.google-btn:disabled{opacity:.6}
 .user-bar{display:flex;align-items:center;gap:8px;font-size:13px}
 .user-bar span{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
 .error-box{background:color-mix(in srgb,var(--err) 14%,transparent);border:1px solid color-mix(in srgb,var(--err) 40%,transparent);color:#fecaca;border-radius:10px;padding:10px 12px;font-size:13px}

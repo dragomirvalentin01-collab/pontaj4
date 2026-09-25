@@ -1,4 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
+// supabase-js e bundlat local (vendor/supabase.esm.js) ca app-ul sa boot-eze si offline
+import { createClient } from './vendor/supabase.esm.js';
 
 const SUPABASE_URL = 'https://nkqncfxmarlcwvzqzzbl.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rcW5jZnhtYXJsY3d2enF6emJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyNjU5MTgsImV4cCI6MjEwNTg0MTkxOH0.leTOr62c4uuKy1R8FbeYTvtCMm6927tsFMzXdl7qbiI';
@@ -40,21 +41,55 @@ function sanitizeDay(v){v=v&&typeof v==='object'?v:{};const s=isTimeStr(v.s)?v.s
 function calcDay(s,p,e){const a=toMin(s),b=toMin(e);if(a==null||b==null)return 0;let d=b-a;if(d<0)d+=24*60;const pause=parseInt(p||'0',10);if(!Number.isFinite(pause)||pause<0)return Math.max(0,d);return Math.max(0,d-Math.min(600,pause));}
 function hm(min){return `${Math.floor(min/60)}:${String(min%60).padStart(2,'0')}`;}
 
-function loadWeek(k){try{return JSON.parse(localStorage.getItem('pontaj:'+k))||{}}catch{return{}}}
+// ---- localStorage namespaced per cont ----
+const LS_OWNER='pontaj:owner';
+const K_THEME='pontaj:theme';
+function lsScope(){return 'pontaj:'+(currentUser?currentUser.id:'local')+':';}
+function kWeek(k){return lsScope()+k;}
+function kTs(k){return lsScope()+k+':ts';}
+function kIndex(){return lsScope()+'index';}
+
+// Ruleaza o singura data: daca nu exista inca un owner, datele vechi
+// (nescopate, de la versiunea precedenta) apartin primului cont care se logheaza.
+// Daca owner-ul este deja alt cont, NU mutam nimic - altfel am scurgea date.
+function migrateLegacyScope(){
+  if(!currentUser) return;
+  const owner=localStorage.getItem(LS_OWNER);
+  if(owner===currentUser.id) return;
+  if(owner!==null) return;
+  const legacy=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(!k||k.indexOf('pontaj:')!==0) continue;
+    if(k===LS_OWNER||k===K_THEME) continue;
+    if(!isWeekKey(k.slice(7))) continue;
+    legacy.push(k);
+  }
+  if(legacy.length){
+    const scope=lsScope();
+    legacy.forEach(k=>{const wk=k.slice(7);localStorage.setItem(scope+wk,localStorage.getItem(k));localStorage.removeItem(k);});
+    const oldIdx=localStorage.getItem('pontaj:index');
+    if(oldIdx){localStorage.setItem(scope+'index',oldIdx);localStorage.removeItem('pontaj:index');}
+  }
+  localStorage.setItem(LS_OWNER,currentUser.id);
+}
+
+function loadWeek(k){try{return JSON.parse(localStorage.getItem(kWeek(k)))||{}}catch{return{}}}
 let histT=null;
 function scheduleHistory(){clearTimeout(histT);histT=setTimeout(()=>{try{renderHistory();}catch{}},300);}
 function saveWeek(){
   const k=weekKey(monday);
   const data={};
   document.querySelectorAll('.day').forEach((el,i)=>{const raw={s:el.querySelector('.in-s').value,p:el.querySelector('.in-p').value,e:el.querySelector('.in-e').value};data[i]=sanitizeDay(raw);});
-  localStorage.setItem('pontaj:'+k,JSON.stringify(data));
-  const idx=getIndex();if(!idx.includes(k)){idx.push(k);idx.sort().reverse();localStorage.setItem('pontaj:index',JSON.stringify(idx.slice(0,52)));}
+  localStorage.setItem(kWeek(k),JSON.stringify(data));
+  localStorage.setItem(kTs(k),String(Date.now()));
+  const idx=getIndex();if(!idx.includes(k)){idx.push(k);idx.sort().reverse();localStorage.setItem(kIndex(),JSON.stringify(idx.slice(0,52)));}
   const d=$('#save-dot');if(d){d.classList.add('show');clearTimeout(d._t);d._t=setTimeout(()=>d.classList.remove('show'),1200);}
   scheduleHistory();
   // cloud sync
   scheduleCloudPush(k);
 }
-function getIndex(){try{return JSON.parse(localStorage.getItem('pontaj:index'))||[]}catch{return[]}}
+function getIndex(){try{return JSON.parse(localStorage.getItem(kIndex()))||[]}catch{return[]}}
 
 function setCloudDot(state,msg){
   const el=$('#cloud-dot'); if(!el) return;
@@ -112,9 +147,16 @@ async function cloudPull(){
   try{
     const { data, error } = await supabase.from('pontaj_weeks').select('week_key,data,updated_at').order('week_key', {ascending:false}).limit(52);
     if(error) throw error;
-    const idx=[];
+    const idx=[];const pushLater=[];
     (data||[]).forEach(row=>{
       if(!isWeekKey(row.week_key)) return;
+      const k=row.week_key;
+      const cloudTs=row.updated_at?Date.parse(row.updated_at):0;
+      const localTs=Number(localStorage.getItem(kTs(k))||0);
+      const local=loadWeek(k);
+      const localHas=Object.values(local).some(v=>v&&(v.s||v.p||v.e));
+      // local mai nou decat cloud (editat offline) -> pastram local si urcam inapoi
+      if(localHas && localTs>cloudTs){ idx.push(k); pushLater.push(k); return; }
       // salveaza in localStorage; cloud e sursa de adevar dupa login
       try{
         const clean={};
@@ -122,10 +164,12 @@ async function cloudPull(){
           if(!/^[0-6]$/.test(di)) return;
           clean[di]=sanitizeDay(row.data[di]);
         });
-        localStorage.setItem('pontaj:'+row.week_key, JSON.stringify(clean));
-        idx.push(row.week_key);
+        localStorage.setItem(kWeek(k), JSON.stringify(clean));
+        if(cloudTs) localStorage.setItem(kTs(k), String(cloudTs));
+        idx.push(k);
       }catch{}
     });
+    pushLater.forEach(k=>cloudPushWeek(k));
     // pastreaza si saptamanile locale care nu sunt inca in cloud (offline create) - mergem in push separat
     const localIdx=getIndex();
     localIdx.forEach(k=>{
@@ -140,7 +184,7 @@ async function cloudPull(){
       }
     });
     idx.sort().reverse();
-    localStorage.setItem('pontaj:index', JSON.stringify(idx.slice(0,52)));
+    localStorage.setItem(kIndex(), JSON.stringify(idx.slice(0,52)));
     setCloudDot('ok');
     render(); // re-render cu date din cloud
   }catch(e){
@@ -158,9 +202,9 @@ function render(){
   const wk=weekKey(monday);
   const wl=$('#week-label'); if(wl) wl.textContent='Săpt. '+wk;
   try{
-    if(!localStorage.getItem('pontaj:'+wk)){
+    if(!localStorage.getItem(kWeek(wk))){
       const lk=legacyWeekKey(monday);
-      if(lk!==wk){const old=localStorage.getItem('pontaj:'+lk);if(old){localStorage.setItem('pontaj:'+wk,old);}}
+      if(lk!==wk){const old=localStorage.getItem(kWeek(lk));if(old)localStorage.setItem(kWeek(wk),old);}
     }
   }catch{}
   const saved=loadWeek(wk);
@@ -209,7 +253,8 @@ function renderHistory(){
     const sub=document.createElement('span');sub.className='muted';sub.textContent=`${roDec(tot/60)} • ${hm(tot)}`;
     const left=document.createElement('span');left.append(b,document.createElement('br'),sub);
     const open=document.createElement('button');open.className='btn small';open.textContent='Deschide';open.setAttribute('aria-label','Deschide săptămâna '+k);open.onclick=()=>{const[y,w]=k.split('-W');monday=mondayFromWeek(+y,+w);render();window.scrollTo({top:0,behavior:'smooth'});};
-    const del=document.createElement('button');del.className='btn small';del.textContent='✕';del.setAttribute('aria-label','Șterge săptămâna '+k);del.onclick=async()=>{if(!confirm('Ștergi '+k+'?'))return;localStorage.removeItem('pontaj:'+k);localStorage.setItem('pontaj:index',JSON.stringify(getIndex().filter(x=>x!==k)));await cloudDeleteWeek(k);renderHistory();recalc();if(weekKey(monday)===k) render();};
+    const del=document.createElement('button');del.className='btn small';del.textContent='✕';del.setAttribute('aria-label','Șterge săptămâna '+k);
+    del.onclick=async()=>{if(!confirm('Ștergi '+k+'?'))return;localStorage.removeItem(kWeek(k));localStorage.removeItem(kTs(k));localStorage.setItem(kIndex(),JSON.stringify(getIndex().filter(x=>x!==k)));await cloudDeleteWeek(k);renderHistory();recalc();if(weekKey(monday)===k) render();};
     const right=document.createElement('span');right.append(open,' ',del);
     li.append(left,right);
     histEl.appendChild(li);
@@ -220,11 +265,18 @@ function mondayFromWeek(y,w){const jan4=new Date(y,0,4);const d=getMonday(jan4);
 $('#btn-prev')&&($('#btn-prev').onclick=()=>{monday.setDate(monday.getDate()-7);render();});
 $('#btn-next')&&($('#btn-next').onclick=()=>{monday.setDate(monday.getDate()+7);render();});
 $('#btn-today')&&($('#btn-today').onclick=()=>{monday=getMonday(new Date());render();});
-$('#btn-clear')&&($('#btn-clear').onclick=async()=>{if(!confirm('Ștergi toate orele din săptămâna afișată?'))return;const k=weekKey(monday);try{localStorage.removeItem('pontaj:'+k);const lk=legacyWeekKey(monday);if(lk)localStorage.removeItem('pontaj:'+lk);}catch{} await cloudDeleteWeek(k); render();});
+$('#btn-clear')&&($('#btn-clear').onclick=async()=>{if(!confirm('Ștergi toate orele din săptămâna afișată?'))return;const k=weekKey(monday);try{localStorage.removeItem(kWeek(k));localStorage.removeItem(kTs(k));const lk=legacyWeekKey(monday);if(lk)localStorage.removeItem(kWeek(lk));}catch{} await cloudDeleteWeek(k); render();});
 $('#btn-copy-weekdays')&&($('#btn-copy-weekdays').onclick=()=>{const f=document.querySelectorAll('.day')[0];const s=f.querySelector('.in-s').value,p=f.querySelector('.in-p').value,e=f.querySelector('.in-e').value;document.querySelectorAll('.day').forEach((c,i)=>{if(i>=1&&i<=4){c.querySelector('.in-s').value=s;c.querySelector('.in-p').value=p;c.querySelector('.in-e').value=e;}});recalc();saveWeek();});
 $('#btn-export')&&($('#btn-export').onclick=()=>{
-  const data={};
-  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf('pontaj:')===0){try{data[k]=JSON.parse(localStorage.getItem(k));}catch{data[k]=localStorage.getItem(k);}}}
+  const data={};const scope=lsScope();
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(!k||k.indexOf(scope)!==0) continue;
+    const wk=k.slice(scope.length);
+    if(!isWeekKey(wk)) continue;
+    try{data['pontaj:'+wk]=JSON.parse(localStorage.getItem(k));}catch{}
+  }
+  if(!Object.keys(data).length){alert('Nu ai săptămâni salvate de exportat.');return;}
   data._exportedAt=new Date().toISOString();data._app='pontaj';
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
@@ -260,18 +312,20 @@ $('#file-import')&&($('#file-import').onchange=(ev)=>{
       const good=Object.keys(clean);
       if(!good.length){alert('Fișierul nu conține intrări valide.');return;}
       if(!confirm('Import '+good.length+' intrări?'+(skipped?' ('+skipped+' ignorate ca invalide)':'')+' Datele existente cu aceeași cheie se suprascriu.'))return;
-      for(const k of good){
-        localStorage.setItem(k,JSON.stringify(clean[k]));
-        await cloudPushWeek(k.slice(7));
+      for(const fk of good){
+        const wk=fk.slice(7);
+        localStorage.setItem(kWeek(wk),JSON.stringify(clean[fk]));
+        localStorage.setItem(kTs(wk),String(Date.now()));
+        await cloudPushWeek(wk);
       }
       // rebuild index
       const idx=getIndex();
-      good.forEach(k=>{
-        const wk=k.slice(7);
+      good.forEach(fk=>{
+        const wk=fk.slice(7);
         if(!idx.includes(wk)) idx.push(wk);
       });
       idx.sort().reverse();
-      localStorage.setItem('pontaj:index', JSON.stringify(idx.slice(0,52)));
+      localStorage.setItem(kIndex(), JSON.stringify(idx.slice(0,52)));
       render();alert('Import gata: '+good.length+' intrări.');
     }catch{alert('Fișier invalid. Alege un JSON exportat din Pontaj.');}
     ev.target.value='';
@@ -287,9 +341,9 @@ $('#btn-print')&&($('#btn-print').onclick=()=>{
 });
 
 // theme
-function setTheme(t){document.documentElement.dataset.theme=t;localStorage.setItem('pontaj:theme',t);const b=$('#btn-theme'); if(b) b.textContent=t==='dark'?'🌙':'☀️';const mt=$('#meta-theme'); if(mt) mt.content=t==='dark'?'#0f172a':'#ffffff';}
+function setTheme(t){document.documentElement.dataset.theme=t;localStorage.setItem(K_THEME,t);const b=$('#btn-theme'); if(b) b.textContent=t==='dark'?'🌙':'☀️';const mt=$('#meta-theme'); if(mt) mt.content=t==='dark'?'#0f172a':'#ffffff';}
 $('#btn-theme')&&($('#btn-theme').onclick=()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark'));
-setTheme(localStorage.getItem('pontaj:theme')||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'));
+setTheme(localStorage.getItem(K_THEME)||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'));
 
 // install
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;const b=$('#btn-install'); if(b) b.hidden=false;});
@@ -494,7 +548,7 @@ $('#form-recovery')&&$('#form-recovery').addEventListener('submit', async (e)=>{
       const rc=$('#recovery-card'); if(rc) rc.hidden=true;
       const { data } = await supabase.auth.getSession();
       currentUser=data.session?.user||null;
-      if(currentUser){ showAppView(currentUser); await cloudPull(); }
+      if(currentUser){ migrateLegacyScope(); showAppView(currentUser); await cloudPull(); }
     }, 900);
   }catch(err){
     setRecoveryError(err.message||'Eroare la schimbarea parolei.');
@@ -505,7 +559,8 @@ $('#form-recovery')&&$('#form-recovery').addEventListener('submit', async (e)=>{
 
 $('#btn-logout')&&$('#btn-logout').addEventListener('click', async ()=>{
   await supabase.auth.signOut();
-  // curata local cache de pontaj la logout pentru privacy? pastram dar nu afisam
+  // cache-ul local ramane, dar e namespocat per cont (pontaj:<userId>:),
+  // deci nu mai poate fi vazut de alt cont. Vezi migrateLegacyScope().
 });
 
 function showAuthView(){
@@ -527,10 +582,16 @@ function showAppView(user){
 }
 
 function isRecoveryUrl(){
-  const href = window.location.href;
-  const hash = window.location.hash || '';
-  const search = window.location.search || '';
-  return href.includes('type=recovery') || hash.includes('type=recovery') || search.includes('code=') || hash.includes('access_token');
+  try{
+    const u=new URL(window.location.href);
+    const hash=u.hash||'';
+    if(hash.includes('type=recovery')) return true;
+    if(u.searchParams.get('error_code')==='otp_expired') return true;
+    // link PKCE de recovery: vine ca ?code=... (OAuth e dezactivat in proiect)
+    if(u.searchParams.get('code')) return true;
+    if(hash.includes('access_token')) return true;
+  }catch{}
+  return false;
 }
 async function handleRecoveryCode(){
   const url = new URL(window.location.href);
@@ -547,6 +608,15 @@ async function handleRecoveryCode(){
 }
 async function initAuth(){
   updateAuthTabs();
+
+  // Listenerul trebuie inregistrat INAINTE de orice return, altfel tabul
+  // care a venit din linkul de recovery nu primeste niciun eveniment de auth.
+  supabase.auth.onAuthStateChange((event, session)=>{
+    // supabase-js cere sa NU facem await pe operatii supabase inauntrul
+    // acestui callback (deadlock pe lock-ul intern de auth) -> declansam async.
+    setTimeout(()=>{ handleAuthEvent(event, session); }, 0);
+  });
+
   const wasRecovery = isRecoveryUrl();
   if(wasRecovery){
     await handleRecoveryCode();
@@ -557,35 +627,43 @@ async function initAuth(){
     try{
       const { data: recData } = await supabase.auth.getSession();
       currentUser=recData.session?.user||null;
+      if(currentUser) migrateLegacyScope();
     }catch{}
     return;
   }
   const { data } = await supabase.auth.getSession();
   currentUser=data.session?.user||null;
   if(currentUser){
+    migrateLegacyScope();
     showAppView(currentUser);
     await cloudPull();
   } else {
     showAuthView();
   }
-  supabase.auth.onAuthStateChange(async (event, session)=>{
-    console.log('auth event', event);
-    if(event==='PASSWORD_RECOVERY' || (isRecoveryUrl() && session)){
-      const a=$('#auth-card'), l=$('#auth-loading'), c=$('#app-content'), rc=$('#recovery-card');
-      if(a) a.hidden=true; if(l) l.hidden=true; if(c) c.hidden=true; if(rc) rc.hidden=false;
-      return;
-    }
-    currentUser=session?.user||null;
-    if(currentUser){
-      // daca suntem in recovery, nu face pull inca
-      const rc=$('#recovery-card');
-      if(rc && !rc.hidden) return;
-      showAppView(currentUser);
-      await cloudPull();
-    } else {
-      showAuthView();
-    }
-  });
+}
+
+async function handleAuthEvent(event, session){
+  console.log('auth event', event);
+  if(event==='PASSWORD_RECOVERY' || (isRecoveryUrl() && session)){
+    const a=$('#auth-card'), l=$('#auth-loading'), c=$('#app-content'), rc=$('#recovery-card');
+    if(a) a.hidden=true; if(l) l.hidden=true; if(c) c.hidden=true; if(rc) rc.hidden=false;
+    return;
+  }
+  const prevId=currentUser?currentUser.id:null;
+  currentUser=session?.user||null;
+  if(currentUser){
+    if(currentUser.id!==prevId) migrateLegacyScope();
+    // daca suntem in recovery, nu face pull inca
+    const rc=$('#recovery-card');
+    if(rc && !rc.hidden) return;
+    showAppView(currentUser);
+    await cloudPull();
+  } else {
+    // logout: golim formularul ca datele contului anterior sa nu ramana in DOM
+    monday=getMonday(new Date());
+    try{ render(); }catch{}
+    showAuthView();
+  }
 }
 
 initAuth();
