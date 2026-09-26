@@ -6,16 +6,18 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 try{
-  if(!new URL(window.location.href).searchParams.get('code')){
-    for(const st of [localStorage, sessionStorage]){
-      try{
-        const dead=[];
-        for(let i=0;i<st.length;i++){const k=st.key(i);if(k&&/-code-verifier$/.test(k))dead.push(k);}
-        dead.forEach(k=>st.removeItem(k));
-      }catch{}
-    }
-  }
+  if(!new URL(window.location.href).searchParams.get('code')) wipePkceSlots();
 }catch{}
+
+function wipePkceSlots(){
+  for(const st of [localStorage, sessionStorage]){
+    try{
+      const dead=[];
+      for(let i=0;i<st.length;i++){const k=st.key(i);if(k&&k.indexOf('code-verifier')!==-1)dead.push(k);}
+      dead.forEach(k=>st.removeItem(k));
+    }catch{}
+  }
+}
 
 const DAYS=['Luni','Marți','Miercuri','Joi','Vineri','Sâmbătă','Duminică'];
 const STATUS={lucru:'Lucru',concediu:'Concediu',liber:'Liber',medical:'Medical'};
@@ -529,6 +531,7 @@ $('#form-auth')&&$('#form-auth').addEventListener('submit', async (e)=>{
 });
 
 $('#btn-forgot')&&$('#btn-forgot').addEventListener('click', async ()=>{
+  wipePkceSlots();
   const email=$('#auth-email')?.value.trim();
   if(!email) return setAuthError('Scrie emailul mai sus, apoi apasă „Ai uitat parola?”');
   setAuthError('');
@@ -547,6 +550,7 @@ $('#btn-forgot')&&$('#btn-forgot').addEventListener('click', async ()=>{
 });
 
 $('#btn-google')&&$('#btn-google').addEventListener('click', async ()=>{
+  wipePkceSlots();
   setAuthError('');
   const btn=$('#btn-google'); if(btn) btn.disabled=true;
   try{
@@ -706,6 +710,7 @@ async function initAuth(){
 
 async function handleAuthEvent(event, session){
   console.log('auth event', event);
+  try{const ed=$('#auth-evt');if(ed)ed.textContent='evt:'+event;}catch{}
   if(event==='PASSWORD_RECOVERY' || (isRecoveryUrl() && session)){
     const a=$('#auth-card'), l=$('#auth-loading'), c=$('#app-content'), rc=$('#recovery-card');
     if(a) a.hidden=true; if(l) l.hidden=true; if(c) c.hidden=true; if(rc) rc.hidden=false;
