@@ -602,6 +602,7 @@ function showAppView(user){
   if(ub) ub.hidden=false;
   if(rc) rc.hidden=true;
   if(ue) ue.textContent=user?.email||'';
+  const av=$('#user-avatar'); if(av) av.textContent=((user?.email||'?').trim().charAt(0)||'?').toUpperCase();
 }
 
 function isRecoveryUrl(){
@@ -610,20 +611,22 @@ function isRecoveryUrl(){
     const hash=u.hash||'';
     if(hash.includes('type=recovery')) return true;
     if(u.searchParams.get('error_code')==='otp_expired') return true;
-    // link PKCE de recovery: vine ca ?code=... (OAuth e dezactivat in proiect)
-    if(u.searchParams.get('code')) return true;
     if(hash.includes('access_token')) return true;
+    // ATENTIE: ?code= NU mai inseamna recovery — vine si de la loginul
+    // OAuth (Google) prin PKCE. Tipul evenimentului de auth
+    // (SIGNED_IN vs PASSWORD_RECOVERY) decide ecranul, vezi initAuth.
   }catch{}
   return false;
 }
-async function handleRecoveryCode(){
+async function handleRedirectCode(){
+  // Exchange pentru ?code= din redirect: fie login OAuth (Google) -> SIGNED_IN,
+  // fie link de resetare parola -> PASSWORD_RECOVERY. Curata URL-ul dupa.
   const url = new URL(window.location.href);
   const code = url.searchParams.get('code');
   if(code){
     try{
       const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
       if(error) console.warn('exchangeCode error', error);
-      // curata URL-ul de code
       url.searchParams.delete('code');
       window.history.replaceState({}, document.title, url.pathname + url.search + window.location.hash);
     }catch(e){ console.warn('exchange failed', e); }
@@ -640,9 +643,26 @@ async function initAuth(){
     setTimeout(()=>{ handleAuthEvent(event, session); }, 0);
   });
 
-  const wasRecovery = isRecoveryUrl();
-  if(wasRecovery){
-    await handleRecoveryCode();
+  const url = new URL(window.location.href);
+  if(url.searchParams.get('code')){
+    // Intoarcere din redirect (Google OAuth sau link resetare). Stam pe
+    // loading pana vine evenimentul de auth, care decide ecranul:
+    // SIGNED_IN -> aplicatie, PASSWORD_RECOVERY -> schimbare parola.
+    await handleRedirectCode();
+    try{
+      const { data } = await supabase.auth.getSession();
+      currentUser=data.session?.user||null;
+      if(!currentUser){ showAuthView(); return; }
+      migrateLegacyScope();
+      await new Promise(r=>setTimeout(r, 500));
+      const rc=$('#recovery-card');
+      if(rc && !rc.hidden) return; // recovery a preluat ecranul
+      const c=$('#app-content');
+      if(c && c.hidden){ showAppView(currentUser); await cloudPull(); }
+    }catch{ showAuthView(); }
+    return;
+  }
+  if(isRecoveryUrl()){
     const rc=$('#recovery-card'), a=$('#auth-card'), l=$('#auth-loading'), c=$('#app-content');
     if(rc) rc.hidden=false;
     if(a) a.hidden=true; if(l) l.hidden=true; if(c) c.hidden=true;

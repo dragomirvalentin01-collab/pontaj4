@@ -81,7 +81,16 @@ main{max-width:640px;margin:0 auto;padding:12px;display:grid;gap:12px}
 .auth-form label{font-size:13px;color:var(--text)}
 .auth-form input{font-size:15px}
 .user-bar{display:flex;align-items:center;gap:8px;font-size:13px}
-.user-bar span{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+.user-bar span#user-email{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+.avatar{width:30px;height:30px;flex:none;border-radius:50%;background:linear-gradient(135deg,#0284c7,#4338ca);display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff}
+.top-actions{display:flex;align-items:center;gap:8px}
+@media(max-width:520px){
+  #user-email{display:none}
+  h1{font-size:17px}
+  .brand p{font-size:11px;white-space:nowrap}
+  .logo{font-size:24px}
+  .topbar{padding:10px 12px;gap:8px}
+}
 .error-box{background:color-mix(in srgb,var(--err) 14%,transparent);border:1px solid color-mix(in srgb,var(--err) 40%,transparent);color:#fecaca;border-radius:10px;padding:10px 12px;font-size:13px}
 .error-box:empty{display:none}
 

@@ -12,13 +12,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=21">
+<link rel="stylesheet" href="styles.css?v=22">
 </head>
 <body>
 <header class="topbar">
   <div class="brand"><span class="logo">📅</span><div><h1>Pontaj</h1><p id="week-label">Săptămâna</p></div></div>
   <div class="top-actions">
-    <div id="user-bar" class="user-bar" hidden><span id="user-email"></span><button id="btn-logout" class="btn small ghost">Ieșire</button></div>
+    <div id="user-bar" class="user-bar" hidden><span id="user-avatar" class="avatar">?</span><span id="user-email"></span><button id="btn-logout" class="btn small ghost">Ieșire</button></div>
     <button id="btn-install" class="btn ghost" hidden>📲 Instalează</button>
     <button id="btn-theme" class="btn ghost" aria-label="Dark mode">🌙</button>
   </div>
@@ -114,7 +114,7 @@
 <div id="print-area"></div>
 <div id="sw-toast" class="sw-toast" hidden><span>Versiune nouă disponibilă.</span><button id="sw-reload" class="btn small primary" type="button">Reîncarcă</button></div>
 
-<script type="module" src="app.js?v=21"></script>
+<script type="module" src="app.js?v=22"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));
