@@ -530,24 +530,6 @@ $('#form-auth')&&$('#form-auth').addEventListener('submit', async (e)=>{
   }
 });
 
-$('#btn-forgot')&&$('#btn-forgot').addEventListener('click', async ()=>{
-  wipePkceSlots();
-  const email=$('#auth-email')?.value.trim();
-  if(!email) return setAuthError('Scrie emailul mai sus, apoi apasă „Ai uitat parola?”');
-  setAuthError('');
-  const btn=$('#btn-forgot');
-  if(btn) btn.disabled=true;
-  try{
-    const redirectTo = window.location.origin + window.location.pathname;
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-    if(error) throw error;
-    setAuthError('Ți-am trimis email de resetare. Verifică inbox (și Spam).');
-  }catch(err){
-    setAuthError(err.message||'Nu s-a putut trimite emailul.');
-  }finally{
-    if(btn) btn.disabled=false;
-  }
-});
 
 $('#btn-google')&&$('#btn-google').addEventListener('click', async ()=>{
   wipePkceSlots();
@@ -562,40 +544,6 @@ $('#btn-google')&&$('#btn-google').addEventListener('click', async ()=>{
   }
 });
 
-function setRecoveryError(msg){
-  const el=$('#recovery-error');
-  if(!el) return;
-  el.textContent=msg||'';
-  el.style.display=msg?'block':'none';
-}
-$('#form-recovery')&&$('#form-recovery').addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  setRecoveryError('');
-  const p1=$('#new-pass')?.value||'';
-  const p2=$('#new-pass2')?.value||'';
-  if(p1.length<6) return setRecoveryError('Parola trebuie să aibă minim 6 caractere.');
-  if(p1!==p2) return setRecoveryError('Parolele nu coincid.');
-  const btn=e.target.querySelector('button');
-  if(btn){btn.disabled=true; btn.textContent='Se salvează…';}
-  try{
-    const { error } = await supabase.auth.updateUser({ password: p1 });
-    if(error) throw error;
-    setRecoveryError('Parola a fost schimbată! Te loghez…');
-    // curata URL de tokenuri
-    try{ window.history.replaceState({}, document.title, window.location.pathname); }catch{}
-    setTimeout(async ()=>{
-      const rc=$('#recovery-card'); if(rc) rc.hidden=true;
-      const { data } = await supabase.auth.getSession();
-      currentUser=data.session?.user||null;
-      if(currentUser){ migrateLegacyScope(); showAppView(currentUser); await cloudPull(); }
-    }, 900);
-  }catch(err){
-    setRecoveryError(err.message||'Eroare la schimbarea parolei.');
-  }finally{
-    if(btn){btn.disabled=false; btn.textContent='Salvează parola';}
-  }
-});
-
 $('#btn-logout')&&$('#btn-logout').addEventListener('click', async ()=>{
   await supabase.auth.signOut();
   // cache-ul local ramane, dar e namespocat per cont (pontaj:<userId>:),
@@ -603,40 +551,24 @@ $('#btn-logout')&&$('#btn-logout').addEventListener('click', async ()=>{
 });
 
 function showAuthView(){
-  const a=$('#auth-card'), c=$('#app-content'), l=$('#auth-loading'), ub=$('#user-bar'), rc=$('#recovery-card');
+  const a=$('#auth-card'), c=$('#app-content'), l=$('#auth-loading'), ub=$('#user-bar');
   if(a) a.hidden=false;
   if(c) c.hidden=true;
   if(l) l.hidden=true;
   if(ub) ub.hidden=true;
-  if(rc) rc.hidden=true;
 }
 function showAppView(user){
-  const a=$('#auth-card'), c=$('#app-content'), l=$('#auth-loading'), ub=$('#user-bar'), ue=$('#user-email'), rc=$('#recovery-card');
+  const a=$('#auth-card'), c=$('#app-content'), l=$('#auth-loading'), ub=$('#user-bar'), ue=$('#user-email');
   if(a) a.hidden=true;
   if(c) c.hidden=false;
   if(l) l.hidden=true;
   if(ub) ub.hidden=false;
-  if(rc) rc.hidden=true;
   if(ue) ue.textContent=user?.email||'';
   const av=$('#user-avatar'); if(av) av.textContent=((user?.email||'?').trim().charAt(0)||'?').toUpperCase();
 }
 
-function isRecoveryUrl(){
-  try{
-    const u=new URL(window.location.href);
-    const hash=u.hash||'';
-    if(hash.includes('type=recovery')) return true;
-    if(u.searchParams.get('error_code')==='otp_expired') return true;
-    if(hash.includes('access_token')) return true;
-    // ATENTIE: ?code= NU mai inseamna recovery — vine si de la loginul
-    // OAuth (Google) prin PKCE. Tipul evenimentului de auth
-    // (SIGNED_IN vs PASSWORD_RECOVERY) decide ecranul, vezi initAuth.
-  }catch{}
-  return false;
-}
-async function handleRedirectCode(){
-  // Exchange pentru ?code= din redirect: fie login OAuth (Google) -> SIGNED_IN,
-  // fie link de resetare parola -> PASSWORD_RECOVERY. Curata URL-ul dupa.
+async function handleOAuthCode(){
+  // Exchange pentru ?code= din redirectul Google OAuth. Curata URL-ul dupa.
   const url = new URL(window.location.href);
   const code = url.searchParams.get('code');
   if(code){
@@ -652,7 +584,7 @@ async function initAuth(){
   updateAuthTabs();
 
   // Listenerul trebuie inregistrat INAINTE de orice return, altfel tabul
-  // care a venit din linkul de recovery nu primeste niciun eveniment de auth.
+  // care a venit din redirectul OAuth nu primeste evenimentul de auth.
   supabase.auth.onAuthStateChange((event, session)=>{
     // supabase-js cere sa NU facem await pe operatii supabase inauntrul
     // acestui callback (deadlock pe lock-ul intern de auth) -> declansam async.
@@ -668,33 +600,18 @@ async function initAuth(){
     return;
   }
   if(url.searchParams.get('code')){
-    // Intoarcere din redirect (Google OAuth sau link resetare). Stam pe
-    // loading pana vine evenimentul de auth, care decide ecranul:
-    // SIGNED_IN -> aplicatie, PASSWORD_RECOVERY -> schimbare parola.
-    await handleRedirectCode();
+    // Intoarcere din redirectul Google OAuth. Stam pe loading pana vine
+    // evenimentul de auth, apoi aratam aplicatia.
+    await handleOAuthCode();
     try{
       const { data } = await supabase.auth.getSession();
       currentUser=data.session?.user||null;
       if(!currentUser){ showAuthView(); return; }
       migrateLegacyScope();
       await new Promise(r=>setTimeout(r, 500));
-      const rc=$('#recovery-card');
-      if(rc && !rc.hidden) return; // recovery a preluat ecranul
       const c=$('#app-content');
       if(c && c.hidden){ showAppView(currentUser); await cloudPull(); }
     }catch{ showAuthView(); }
-    return;
-  }
-  if(isRecoveryUrl()){
-    const rc=$('#recovery-card'), a=$('#auth-card'), l=$('#auth-loading'), c=$('#app-content');
-    if(rc) rc.hidden=false;
-    if(a) a.hidden=true; if(l) l.hidden=true; if(c) c.hidden=true;
-    // incearca sa ia sesiunea dupa exchange, dar ramai in recovery pana schimbi parola
-    try{
-      const { data: recData } = await supabase.auth.getSession();
-      currentUser=recData.session?.user||null;
-      if(currentUser) migrateLegacyScope();
-    }catch{}
     return;
   }
   const { data } = await supabase.auth.getSession();
@@ -711,18 +628,10 @@ async function initAuth(){
 async function handleAuthEvent(event, session){
   console.log('auth event', event);
   try{const ed=$('#auth-evt');if(ed)ed.textContent='evt:'+event;}catch{}
-  if(event==='PASSWORD_RECOVERY' || (isRecoveryUrl() && session)){
-    const a=$('#auth-card'), l=$('#auth-loading'), c=$('#app-content'), rc=$('#recovery-card');
-    if(a) a.hidden=true; if(l) l.hidden=true; if(c) c.hidden=true; if(rc) rc.hidden=false;
-    return;
-  }
   const prevId=currentUser?currentUser.id:null;
   currentUser=session?.user||null;
   if(currentUser){
     if(currentUser.id!==prevId) migrateLegacyScope();
-    // daca suntem in recovery, nu face pull inca
-    const rc=$('#recovery-card');
-    if(rc && !rc.hidden) return;
     showAppView(currentUser);
     await cloudPull();
   } else {
