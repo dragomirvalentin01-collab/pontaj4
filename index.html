@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=25">
+<link rel="stylesheet" href="styles.css?v=26">
 </head>
 <body>
 <header class="topbar">
@@ -39,9 +39,9 @@
     <form id="form-auth" class="auth-form">
       <label>Email<input id="auth-email" type="email" placeholder="tu@exemplu.com" autocomplete="email" required></label>
       <label>Parolă<input id="auth-pass" type="password" placeholder="minim 6 caractere" autocomplete="current-password" required></label>
-      <button id="btn-auth" type="submit" class="btn primary" style="width:100%">Intră în cont</button>
+      <button id="btn-auth" type="submit" class="btn primary full">Intră în cont</button>
     </form>
-    <p class="muted small center" style="margin-top:10px">Prin login accepți sincronizarea datelor pontajului în cloud (doar tu le vezi).</p>
+    <p class="muted small center auth-note">Prin login accepți sincronizarea datelor pontajului în cloud (doar tu le vezi).</p>
   </section>
 
   <div id="auth-loading" class="card center"><p class="muted">Se verifică sesiunea…</p></div>
@@ -83,7 +83,7 @@
       <ul id="history" class="history"></ul>
     </section>
 
-    <p class="muted small center">☁️ Datele sunt legate de contul tău • Ștergerea cache-ului nu le mai șterge • <span id="app-ver">v25</span> <span id="auth-evt"></span></p>
+    <p class="muted small center">☁️ Datele sunt legate de contul tău • Ștergerea cache-ului nu le mai șterge • <span id="app-ver">v26</span> <span id="auth-evt"></span></p>
 
     <section class="card" id="instalare-ajutor">
       <h2>📲 Instalare pe Android</h2>
@@ -101,7 +101,7 @@
 <div id="print-area"></div>
 <div id="sw-toast" class="sw-toast" hidden><span>Versiune nouă disponibilă.</span><button id="sw-reload" class="btn small primary" type="button">Reîncarcă</button></div>
 
-<script type="module" src="app.js?v=25"></script>
+<script type="module" src="app.js?v=26"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));

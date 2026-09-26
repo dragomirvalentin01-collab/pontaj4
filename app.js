@@ -5,10 +5,6 @@ const SUPABASE_URL = 'https://nkqncfxmarlcwvzqzzbl.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rcW5jZnhtYXJsY3d2enF6emJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyNjU5MTgsImV4cCI6MjEwNTg0MTkxOH0.leTOr62c4uuKy1R8FbeYTvtCMm6927tsFMzXdl7qbiI';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-try{
-  if(!new URL(window.location.href).searchParams.get('code')) wipePkceSlots();
-}catch{}
-
 function wipePkceSlots(){
   for(const st of [localStorage, sessionStorage]){
     try{
@@ -18,6 +14,10 @@ function wipePkceSlots(){
     }catch{}
   }
 }
+
+try{
+  if(!new URL(window.location.href).searchParams.get('code')) wipePkceSlots();
+}catch{}
 
 const DAYS=['Luni','Marți','Miercuri','Joi','Vineri','Sâmbătă','Duminică'];
 const STATUS={lucru:'Lucru',concediu:'Concediu',liber:'Liber',medical:'Medical'};
@@ -221,7 +221,7 @@ function render(){
   try{
     if(!localStorage.getItem(kWeek(wk))){
       const lk=legacyWeekKey(monday);
-      if(lk!==wk){const old=localStorage.getItem(kWeek(lk));if(old)localStorage.setItem(kWeek(wk),old);}
+      if(lk!==wk){const old=localStorage.getItem(kWeek(lk));if(old){localStorage.setItem(kWeek(wk),old);localStorage.removeItem(kWeek(lk));}}
     }
   }catch{}
   const saved=loadWeek(wk);
@@ -626,7 +626,6 @@ async function initAuth(){
 }
 
 async function handleAuthEvent(event, session){
-  console.log('auth event', event);
   try{const ed=$('#auth-evt');if(ed)ed.textContent='evt:'+event;}catch{}
   const prevId=currentUser?currentUser.id:null;
   currentUser=session?.user||null;
