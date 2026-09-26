@@ -5,6 +5,18 @@ const SUPABASE_URL = 'https://nkqncfxmarlcwvzqzzbl.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rcW5jZnhtYXJsY3d2enF6emJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyNjU5MTgsImV4cCI6MjEwNTg0MTkxOH0.leTOr62c4uuKy1R8FbeYTvtCMm6927tsFMzXdl7qbiI';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+try{
+  if(!new URL(window.location.href).searchParams.get('code')){
+    for(const st of [localStorage, sessionStorage]){
+      try{
+        const dead=[];
+        for(let i=0;i<st.length;i++){const k=st.key(i);if(k&&/-code-verifier$/.test(k))dead.push(k);}
+        dead.forEach(k=>st.removeItem(k));
+      }catch{}
+    }
+  }
+}catch{}
+
 const DAYS=['Luni','Marți','Miercuri','Joi','Vineri','Sâmbătă','Duminică'];
 const STATUS={lucru:'Lucru',concediu:'Concediu',liber:'Liber',medical:'Medical'};
 const STATUS_OK=['lucru','concediu','liber','medical'];
@@ -644,6 +656,13 @@ async function initAuth(){
   });
 
   const url = new URL(window.location.href);
+  const oErr = url.searchParams.get('error_description')||url.searchParams.get('error');
+  if(oErr && !url.searchParams.get('code')){
+    showAuthView();
+    try{ setAuthError('Loginul a eșuat: '+decodeURIComponent(String(oErr).replace(/\+/g,' '))); }catch{ setAuthError('Loginul a eșuat. Încearcă din nou.'); }
+    try{ url.searchParams.delete('error');url.searchParams.delete('error_code');url.searchParams.delete('error_description');window.history.replaceState({},document.title,url.pathname+url.search+window.location.hash); }catch{}
+    return;
+  }
   if(url.searchParams.get('code')){
     // Intoarcere din redirect (Google OAuth sau link resetare). Stam pe
     // loading pana vine evenimentul de auth, care decide ecranul:
