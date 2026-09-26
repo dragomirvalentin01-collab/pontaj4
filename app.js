@@ -215,7 +215,8 @@ async function cloudPull(){
 
 function render(){
   const m=new Date(monday);const end=new Date(m);end.setDate(end.getDate()+6);
-  const wr=$('#week-range'); if(wr) wr.textContent=`${fmtDate(m)} – ${fmtDate(end)} ${end.getFullYear()}`;
+  const wr=$('#week-range'); if(wr) wr.textContent=`${fmtDate(m)} – ${fmtDate(end)}`;
+  const bt=$('#btn-today'); if(bt) bt.hidden=(weekKey(monday)===weekKey(new Date()));
   const wk=weekKey(monday);
   const wl=$('#week-label'); if(wl) wl.textContent='Săpt. '+wk;
   try{

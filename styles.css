@@ -6,13 +6,7 @@
 main{max-width:640px;margin:0 auto;padding:12px;display:grid;gap:12px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
 .highlight{display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#0284c7,#4338ca);border:none;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35)}.highlight .muted{color:#e0e7ff}.lbl{display:block;font-size:12px;opacity:.85}#total-dec{font-size:30px;display:block;line-height:1.1}
-.week-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.week-nav-mid{text-align:center}.week-nav-sub{display:flex;align-items:center;justify-content:center;gap:2px;flex-wrap:wrap}.total-actions{flex:none}
-.sync-row{flex-basis:100%;display:flex;align-items:center;justify-content:center;gap:12px}.link{background:none;border:none;color:var(--acc);font-size:13px;cursor:pointer}.save-dot{color:var(--ok);font-size:12px;margin-left:8px;opacity:0;transition:.3s}.save-dot.show{opacity:1}
-.cloud-dot{color:var(--muted);font-size:12px;margin-left:8px;white-space:nowrap}
-.cloud-dot.ok{color:var(--ok)}
-.cloud-dot.sync{color:var(--acc);animation:ck-pulse 1.1s ease-in-out infinite}
-.cloud-dot.err{color:var(--err)}
-@keyframes ck-pulse{0%,100%{opacity:1}50%{opacity:.45}}
+.week-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.week-nav-mid{text-align:center}#week-range{font-size:19px;white-space:nowrap}.week-nav-sub{display:flex;align-items:center;justify-content:center;gap:2px;flex-wrap:wrap}.total-actions{flex:none}.link{background:none;border:none;color:var(--acc);font-size:13px;cursor:pointer}
 .btn{border:1px solid var(--line);background:var(--bg2);color:var(--text);border-radius:12px;padding:10px 14px;font-size:15px;cursor:pointer}.btn.primary{background:#fff;color:#0f172a;border:none;font-weight:700}.btn.ghost{background:transparent}.btn.small{font-size:13px;padding:8px 10px;flex:1}.btn.danger-ghost{color:#f87171}
 .btn:disabled{opacity:.6;cursor:not-allowed}
 .days{display:grid;gap:10px}
