@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=30">
+<link rel="stylesheet" href="styles.css?v=31">
 </head>
 <body>
 <header class="topbar">
@@ -52,7 +52,7 @@
       <button id="btn-prev" class="btn" aria-label="Săptămâna anterioară">‹</button>
       <div class="week-nav-mid">
         <strong id="week-range">–</strong>
-        <div class="week-nav-sub"><button id="btn-today" class="link">Săptămâna curentă</button></div>
+        <div class="week-nav-sub"><span id="week-num" class="muted small">Săptămâna –</span></div>
       </div>
       <button id="btn-next" class="btn" aria-label="Săptămâna următoare">›</button>
     </section>
@@ -72,7 +72,7 @@
       <ul id="history" class="history"></ul>
     </section>
 
-    <p class="muted small center">☁️ Datele sunt legate de contul tău • <span id="app-ver">v30</span></p>
+    <p class="muted small center">☁️ Datele sunt legate de contul tău • <span id="app-ver">v31</span></p>
   </div>
 </main>
 
@@ -85,7 +85,7 @@
 <div id="print-area"></div>
 <div id="sw-toast" class="sw-toast" hidden><span>Versiune nouă disponibilă.</span><button id="sw-reload" class="btn small primary" type="button">Reîncarcă</button></div>
 
-<script type="module" src="app.js?v=30"></script>
+<script type="module" src="app.js?v=31"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));

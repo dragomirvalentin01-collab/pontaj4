@@ -216,7 +216,9 @@ async function cloudPull(){
 function render(){
   const m=new Date(monday);const end=new Date(m);end.setDate(end.getDate()+6);
   const wr=$('#week-range'); if(wr) wr.textContent=`${fmtDate(m)} – ${fmtDate(end)}`;
-  const bt=$('#btn-today'); if(bt) bt.hidden=(weekKey(monday)===weekKey(new Date()));
+  const wkn=weekKey(monday);
+  const wn=$('#week-num'); if(wn) wn.textContent='Săptămâna '+Number(wkn.split('-W')[1]);
+  if(wr){const off=wkn!==weekKey(new Date());wr.classList.toggle('back',off);if(off)wr.title='Înapoi la săptămâna curentă';else wr.removeAttribute('title');}
   const wk=weekKey(monday);
   const wl=$('#week-label'); if(wl) wl.textContent='Săpt. '+wk;
   try{
@@ -290,7 +292,7 @@ function mondayFromWeek(y,w){const jan4=new Date(y,0,4);const d=getMonday(jan4);
 
 $('#btn-prev')&&($('#btn-prev').onclick=()=>{monday.setDate(monday.getDate()-7);render();});
 $('#btn-next')&&($('#btn-next').onclick=()=>{monday.setDate(monday.getDate()+7);render();});
-$('#btn-today')&&($('#btn-today').onclick=()=>{monday=getMonday(new Date());render();});
+$('#week-range')&&($('#week-range').onclick=()=>{const now=getMonday(new Date());if(weekKey(now)!==weekKey(monday)){monday=now;render();window.scrollTo({top:0,behavior:'smooth'});}});
 $('#btn-print')&&($('#btn-print').onclick=()=>{
   const m=new Date(monday);let rows='',tot=0;
   for(let i=0;i<7;i++){const card=document.querySelectorAll('.day')[i];const raw={s:card.querySelector('.in-s').value,p:card.querySelector('.in-p').value,e:card.querySelector('.in-e').value,t:card.dataset.status||'lucru'};const v=sanitizeDay(raw);const st=normStatus(v.t);const s=st!=='lucru'?'—':(v.s||'—'),p=st!=='lucru'?'—':((v.p||'0')+' min'),e=st!=='lucru'?'—':(v.e||'—');const min=calcDay(v.s,v.p,v.e,st);tot+=min;const dt=new Date(m);dt.setDate(dt.getDate()+i);
