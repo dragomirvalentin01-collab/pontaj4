@@ -626,7 +626,6 @@ async function initAuth(){
 }
 
 async function handleAuthEvent(event, session){
-  try{const ed=$('#auth-evt');if(ed)ed.textContent='evt:'+event;}catch{}
   const prevId=currentUser?currentUser.id:null;
   currentUser=session?.user||null;
   if(currentUser){
