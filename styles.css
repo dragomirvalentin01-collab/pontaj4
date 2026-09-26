@@ -1,22 +1,41 @@
 :root{--bg:#0f172a;--bg2:#1e293b;--card:#1e293b;--text:#f1f5f9;--muted:#94a3b8;--acc:#38bdf8;--acc2:#818cf8;--ok:#22c55e;--line:#334155;--radius:16px;--err:#ef4444}
 [data-theme="light"]{--bg:#f1f5f9;--bg2:#fff;--card:#fff;--text:#0f172a;--muted:#64748b;--acc:#0369a1;--acc2:#4f46e5;--line:#e2e8f0}
-*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text);padding-bottom:48px}
+*{box-sizing:border-box}body{margin:0;font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);padding-bottom:48px}
 .topbar{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .brand{display:flex;gap:10px;align-items:center}.logo{font-size:30px}h1{font-size:19px;margin:0}h2{font-size:16px;margin:0 0 6px}.brand p{margin:0;color:var(--muted);font-size:12px}
 main{max-width:640px;margin:0 auto;padding:12px;display:grid;gap:12px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
 .highlight{display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#0284c7,#4338ca);border:none;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35)}.highlight .muted{color:#e0e7ff}.lbl{display:block;font-size:12px;opacity:.85}#total-dec{font-size:30px;display:block;line-height:1.1}
 .week-nav{display:flex;align-items:center;justify-content:space-between;gap:8px}.week-nav-mid{text-align:center}.link{background:none;border:none;color:var(--acc);font-size:13px;cursor:pointer}.save-dot{color:var(--ok);font-size:12px;margin-left:8px;opacity:0;transition:.3s}.save-dot.show{opacity:1}
-.cloud-dot{color:var(--muted);font-size:12px;margin-left:8px}
+.cloud-dot{color:var(--muted);font-size:12px;margin-left:8px;white-space:nowrap}
 .cloud-dot.ok{color:var(--ok)}
+.cloud-dot.sync{color:var(--acc);animation:ck-pulse 1.1s ease-in-out infinite}
 .cloud-dot.err{color:var(--err)}
+@keyframes ck-pulse{0%,100%{opacity:1}50%{opacity:.45}}
 .btn{border:1px solid var(--line);background:var(--bg2);color:var(--text);border-radius:12px;padding:10px 14px;font-size:15px;cursor:pointer}.btn.primary{background:#fff;color:#0f172a;border:none;font-weight:700}.btn.ghost{background:transparent}.btn.small{font-size:13px;padding:8px 10px;flex:1}.btn.danger-ghost{color:#f87171}
 .btn:disabled{opacity:.6;cursor:not-allowed}
 .days{display:grid;gap:10px}
-.day{border:1px solid var(--line);border-radius:var(--radius);padding:12px;background:var(--card)}
+.day{border:1px solid var(--line);border-left:5px solid var(--acc);border-radius:var(--radius);padding:12px;background:var(--card);animation:day-in .28s ease both;transition:border-color .25s,transform .15s,box-shadow .2s}
+.day:active{transform:scale(.998)}
+@keyframes day-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.day.st-lucru{border-left-color:var(--acc)}
+.day.st-concediu{border-left-color:#22c55e}
+.day.st-liber{border-left-color:#eab308}
+.day.st-medical{border-left-color:#ef4444}
 .day.today{outline:2px solid var(--acc)}.day-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.day-head b{font-size:15px}.day-head span{font-size:12px;color:var(--muted)}
 .day-total{font-weight:800;background:color-mix(in srgb,var(--acc) 18%,transparent);padding:5px 10px;border-radius:99px;font-size:13px;white-space:nowrap}
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}label{font-size:12px;color:var(--muted);display:grid;gap:4px}input{width:100%;padding:10px 8px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:16px}
+.status-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.st-btn{flex:1;min-width:0;font-size:12px;font-weight:600;padding:8px 4px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer;transition:background .2s,transform .12s,opacity .2s;white-space:nowrap}
+.st-btn:active{transform:scale(.96)}
+.st-btn.on-lucru{background:var(--acc);color:#06283a;border-color:transparent}
+.st-btn.on-concediu{background:#22c55e;color:#052e16;border-color:transparent}
+.st-btn.on-liber{background:#eab308;color:#422006;border-color:transparent}
+.st-btn.on-medical{background:#ef4444;color:#fff;border-color:transparent}
+.day-badge{font-size:12px;font-weight:700;padding:6px 12px;border-radius:99px}
+.day-badge.b-concediu{background:rgba(34,197,94,.15);color:#4ade80}
+.day-badge.b-liber{background:rgba(234,179,8,.15);color:#facc15}
+.day-badge.b-medical{background:rgba(239,68,68,.15);color:#f87171}
 .chips{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}.chip{font-size:12px;padding:6px 10px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer}.chip.on{background:var(--acc);color:#06283a;border-color:transparent;font-weight:700}
 .row-actions{display:flex;gap:8px}
 .row{display:flex;gap:8px;align-items:center}
@@ -65,3 +84,13 @@ main{max-width:640px;margin:0 auto;padding:12px;display:grid;gap:12px}
 .user-bar span{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
 .error-box{background:color-mix(in srgb,var(--err) 14%,transparent);border:1px solid color-mix(in srgb,var(--err) 40%,transparent);color:#fecaca;border-radius:10px;padding:10px 12px;font-size:13px}
 .error-box:empty{display:none}
+
+.google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:#fff;color:#1f2937;border:none;font-weight:700;margin-bottom:4px;transition:transform .12s,box-shadow .2s}
+.google-btn:active{transform:scale(.98)}
+.google-btn:disabled{opacity:.7}
+.or-sep{display:flex;align-items:center;gap:10px;margin:12px 0;color:var(--muted);font-size:12px}
+.or-sep::before,.or-sep::after{content:"";flex:1;height:1px;background:var(--line)}
+.or-sep span{white-space:nowrap}
+.btn{transition:transform .12s,opacity .2s}
+.btn:active{transform:scale(.97)}
+@media(max-width:420px){.st-btn{font-size:11px;padding:8px 2px}}

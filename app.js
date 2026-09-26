@@ -6,6 +6,9 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const DAYS=['Luni','Marți','Miercuri','Joi','Vineri','Sâmbătă','Duminică'];
+const STATUS={lucru:'Lucru',concediu:'Concediu',liber:'Liber',medical:'Medical'};
+const STATUS_OK=['lucru','concediu','liber','medical'];
+function normStatus(t){return STATUS_OK.includes(t)?t:'lucru';}
 let monday=getMonday(new Date());
 let deferredPrompt=null;
 
@@ -37,8 +40,8 @@ function isWeekKey(k){return /^\d{4}-W(0[1-9]|[1-4][0-9]|5[0-3])$/.test(k||'');}
 function isTimeStr(t){return /^([01]\d|2[0-3]):[0-5]\d$/.test(t||'');}
 function isPauseStr(p){if(p==null||p==='')return true;const n=Number(p);return Number.isFinite(n)&&n>=0&&n<=600;}
 function toMin(t){if(!isTimeStr(t))return null;const[a,b]=t.split(':').map(Number);return a*60+b;}
-function sanitizeDay(v){v=v&&typeof v==='object'?v:{};const s=isTimeStr(v.s)?v.s:'';const e=isTimeStr(v.e)?v.e:'';const p=isPauseStr(v.p)?(v.p==null?'':String(v.p)):'';return{s,p,e};}
-function calcDay(s,p,e){const a=toMin(s),b=toMin(e);if(a==null||b==null)return 0;let d=b-a;if(d<0)d+=24*60;const pause=parseInt(p||'0',10);if(!Number.isFinite(pause)||pause<0)return Math.max(0,d);return Math.max(0,d-Math.min(600,pause));}
+function sanitizeDay(v){v=v&&typeof v==='object'?v:{};const s=isTimeStr(v.s)?v.s:'';const e=isTimeStr(v.e)?v.e:'';const p=isPauseStr(v.p)?(v.p==null?'':String(v.p)):'';const t=STATUS_OK.includes(v.t)?v.t:'lucru';return{s,p,e,t};}
+function calcDay(s,p,e,t){if(t&&t!=='lucru')return 0;const a=toMin(s),b=toMin(e);if(a==null||b==null)return 0;let d=b-a;if(d<0)d+=24*60;const pause=parseInt(p||'0',10);if(!Number.isFinite(pause)||pause<0)return Math.max(0,d);return Math.max(0,d-Math.min(600,pause));}
 function hm(min){return `${Math.floor(min/60)}:${String(min%60).padStart(2,'0')}`;}
 
 // ---- localStorage namespaced per cont ----
@@ -80,7 +83,7 @@ function scheduleHistory(){clearTimeout(histT);histT=setTimeout(()=>{try{renderH
 function saveWeek(){
   const k=weekKey(monday);
   const data={};
-  document.querySelectorAll('.day').forEach((el,i)=>{const raw={s:el.querySelector('.in-s').value,p:el.querySelector('.in-p').value,e:el.querySelector('.in-e').value};data[i]=sanitizeDay(raw);});
+  document.querySelectorAll('.day').forEach((el,i)=>{const raw={s:el.querySelector('.in-s').value,p:el.querySelector('.in-p').value,e:el.querySelector('.in-e').value,t:el.dataset.status||'lucru'};data[i]=sanitizeDay(raw);});
   localStorage.setItem(kWeek(k),JSON.stringify(data));
   localStorage.setItem(kTs(k),String(Date.now()));
   const idx=getIndex();if(!idx.includes(k)){idx.push(k);idx.sort().reverse();localStorage.setItem(kIndex(),JSON.stringify(idx.slice(0,52)));}
@@ -93,9 +96,9 @@ function getIndex(){try{return JSON.parse(localStorage.getItem(kIndex()))||[]}ca
 
 function setCloudDot(state,msg){
   const el=$('#cloud-dot'); if(!el) return;
-  el.classList.remove('ok','err');
-  if(state==='ok'){ el.classList.add('ok'); el.textContent='● sincronizat'; }
-  else if(state==='sync'){ el.textContent='● se sincronizează…'; }
+  el.classList.remove('ok','sync','err');
+  if(state==='ok'){ el.classList.add('ok'); el.textContent='● sincronizat'; el.removeAttribute('title'); }
+  else if(state==='sync'){ el.classList.add('sync'); el.textContent='● se sincronizează…'; }
   else if(state==='err'){ el.classList.add('err'); el.textContent='● offline'; if(msg) el.title=msg; }
   else { el.textContent='● sincronizat'; }
 }
@@ -111,7 +114,7 @@ async function cloudPushWeek(k){
   if(!currentUser) return;
   const data = loadWeek(k);
   // nu trimite saptamani complet goale? totusi trimite ca sa pastreze index; daca e goala complet, sterge din cloud
-  const hasData = Object.values(data).some(v=>v.s||v.p||v.e);
+  const hasData = Object.values(data).some(v=>v.s||v.p||v.e||(v.t&&v.t!=='lucru'));
   try{
     if(!hasData){
       // daca e goala si exista in cloud, stergem
@@ -154,7 +157,7 @@ async function cloudPull(){
       const cloudTs=row.updated_at?Date.parse(row.updated_at):0;
       const localTs=Number(localStorage.getItem(kTs(k))||0);
       const local=loadWeek(k);
-      const localHas=Object.values(local).some(v=>v&&(v.s||v.p||v.e));
+      const localHas=Object.values(local).some(v=>v&&(v.s||v.p||v.e||(v.t&&v.t!=='lucru')));
       // local mai nou decat cloud (editat offline) -> pastram local si urcam inapoi
       if(localHas && localTs>cloudTs){ idx.push(k); pushLater.push(k); return; }
       // salveaza in localStorage; cloud e sursa de adevar dupa login
@@ -175,7 +178,7 @@ async function cloudPull(){
     localIdx.forEach(k=>{
       if(!idx.includes(k) && isWeekKey(k)){
         const localData=loadWeek(k);
-        const hasData=Object.values(localData).some(v=>v.s||v.p||v.e);
+        const hasData=Object.values(localData).some(v=>v.s||v.p||v.e||(v.t&&v.t!=='lucru'));
         if(hasData && !idx.includes(k)){
           // push in background
           cloudPushWeek(k);
@@ -214,15 +217,20 @@ function render(){
   for(let i=0;i<7;i++){
     const dt=new Date(m);dt.setDate(dt.getDate()+i);
     const v=sanitizeDay(saved[i]);
-    const card=document.createElement('div');card.className='day'+(dt.toDateString()===todayStr?' today':'');card.dataset.date=dt.toISOString().slice(0,10);
+    const st=normStatus(v.t);
+    const card=document.createElement('div');card.className='day st-'+st+(dt.toDateString()===todayStr?' today':'');card.dataset.date=dt.toISOString().slice(0,10);card.dataset.status=st;
     card.innerHTML=`<div class="day-head"><div><b>${DAYS[i]}</b> <span>${fmtDate(dt)}</span></div><span class="day-total"></span></div>
+    <div class="status-row" role="group" aria-label="Status ${DAYS[i]}">${STATUS_OK.map(k=>`<button type="button" class="st-btn${k===st?' on-'+k:''}" data-st="${k}" aria-pressed="${k===st}">${k==='lucru'?'💼 ':k==='concediu'?'🌿 ':k==='liber'?'☀️ ':'🏥 '}${STATUS[k]}</button>`).join('')}</div>
+    <div class="time-wrap"${st!=='lucru'?' hidden':''}>
     <div class="grid3">
       <label>🕐 Început<input type="text" inputmode="none" readonly placeholder="--:--" class="in-s" aria-haspopup="dialog" value="${esc(v.s)}"></label>
       <label>⏸️ Pauză (min)<input type="number" class="in-p" min="0" max="600" step="5" inputmode="numeric" value="${esc(v.p)}" placeholder="30"></label>
       <label>🏁 Sfârșit<input type="text" inputmode="none" readonly placeholder="--:--" class="in-e" aria-haspopup="dialog" value="${esc(v.e)}"></label>
-    </div><div class="chips">${[0,15,30,45,60].map(x=>`<button type="button" class="chip" data-p="${x}" aria-pressed="${String(v.p||'')===String(x)}">${x}</button>`).join('')}</div>`;
+    </div><div class="chips">${[0,15,30,45,60].map(x=>`<button type="button" class="chip" data-p="${x}" aria-pressed="${String(v.p||'')===String(x)}">${x}</button>`).join('')}</div>
+    </div>`;
     daysEl.appendChild(card);
   }
+  daysEl.querySelectorAll('.st-btn').forEach(b=>b.addEventListener('click',ev=>{ev.preventDefault();const card=b.closest('.day');const st=b.dataset.st;card.dataset.status=st;card.classList.remove('st-lucru','st-concediu','st-liber','st-medical');card.classList.add('st-'+st);card.querySelectorAll('.st-btn').forEach(x=>{const on=x.dataset.st===st;x.classList.remove('on-lucru','on-concediu','on-liber','on-medical');if(on)x.classList.add('on-'+st);x.setAttribute('aria-pressed',on?'true':'false');});const tw=card.querySelector('.time-wrap');if(tw)tw.hidden=st!=='lucru';recalc();saveWeek();}));
   daysEl.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',()=>{recalc();saveWeek();}));
   daysEl.querySelectorAll('.in-s,.in-e').forEach(inp=>{
     inp.addEventListener('click',()=>openClock(inp));
@@ -234,10 +242,12 @@ function render(){
 function recalc(){
   let total=0,days=0;
   document.querySelectorAll('.day').forEach(card=>{
+    const st=normStatus(card.dataset.status);
     const s=card.querySelector('.in-s').value,p=card.querySelector('.in-p').value,e=card.querySelector('.in-e').value;
-    const min=calcDay(s,p,e);total+=min;if(min>0)days++;
+    const min=calcDay(s,p,e,st);total+=min;if(min>0)days++;
     const out=card.querySelector('.day-total');
-    out.textContent=min>0?`${roDec(min/60)} (${hm(min)})`:'—';
+    if(st!=='lucru'){out.innerHTML=`<span class="day-badge b-${st}">${STATUS[st]}</span>`;}
+    else{out.textContent=min>0?`${roDec(min/60)} (${hm(min)})`:'—';}
     card.querySelectorAll('.chip').forEach(c=>{const on=String(p||'')===c.dataset.p;c.classList.toggle('on',on);c.setAttribute('aria-pressed',on?'true':'false');});
   });
   const td=$('#total-dec'); if(td) td.textContent=roDec(total/60);
@@ -247,7 +257,7 @@ function renderHistory(){
   if(!histEl) return;
   const idx=getIndex().filter(isWeekKey);histEl.innerHTML=idx.length?'':'<li class="muted">Nicio săptămână salvată încă.</li>';
   idx.slice(0,12).forEach(k=>{
-    let tot=0;const d=loadWeek(k);Object.values(d).forEach(raw=>{const v=sanitizeDay(raw);tot+=calcDay(v.s,v.p,v.e);});
+    let tot=0;const d=loadWeek(k);Object.values(d).forEach(raw=>{const v=sanitizeDay(raw);tot+=calcDay(v.s,v.p,v.e,v.t);});
     const li=document.createElement('li');
     const b=document.createElement('b');b.textContent=k;
     const sub=document.createElement('span');sub.className='muted';sub.textContent=`${roDec(tot/60)} • ${hm(tot)}`;
@@ -303,7 +313,7 @@ $('#file-import')&&($('#file-import').onchange=(ev)=>{
         Object.keys(week).forEach(di=>{
           if(!/^[0-6]$/.test(di))return;
           const v=sanitizeDay(week[di]);
-          if(v.s||v.p||v.e)ok=true;
+          if(v.s||v.p||v.e||(v.t&&v.t!=='lucru'))ok=true;
           days[di]=v;
         });
         if(!ok&&Object.keys(days).length===0){skipped++;return;}
@@ -334,9 +344,10 @@ $('#file-import')&&($('#file-import').onchange=(ev)=>{
 });
 $('#btn-print')&&($('#btn-print').onclick=()=>{
   const m=new Date(monday);let rows='',tot=0;
-  for(let i=0;i<7;i++){const card=document.querySelectorAll('.day')[i];const raw={s:card.querySelector('.in-s').value,p:card.querySelector('.in-p').value,e:card.querySelector('.in-e').value};const v=sanitizeDay(raw);const s=v.s||'—',p=v.p||'0',e=v.e||'—';const min=calcDay(v.s,v.p,v.e);tot+=min;const dt=new Date(m);dt.setDate(dt.getDate()+i);
-    rows+=`<tr><td>${esc(DAYS[i])} ${esc(fmtDate(dt))}</td><td>${esc(s)}</td><td>${esc(p)} min</td><td>${esc(e)}</td><td>${min>0?esc(roDec(min/60)+' ('+hm(min)+')'):'—'}</td></tr>`;}
-  $('#print-area').innerHTML=`<h1>Pontaj ${esc(weekKey(monday))} — ${esc($('#week-range').textContent)}</h1><p>Total: <b>${esc(roDec(tot/60)+' ('+hm(tot)+')')}</b></p><table><tr><th>Zi</th><th>Început</th><th>Pauză</th><th>Sfârșit</th><th>Total</th></tr>${rows}</table>`;
+  for(let i=0;i<7;i++){const card=document.querySelectorAll('.day')[i];const raw={s:card.querySelector('.in-s').value,p:card.querySelector('.in-p').value,e:card.querySelector('.in-e').value,t:card.dataset.status||'lucru'};const v=sanitizeDay(raw);const st=normStatus(v.t);const s=st!=='lucru'?'—':(v.s||'—'),p=st!=='lucru'?'—':((v.p||'0')+' min'),e=st!=='lucru'?'—':(v.e||'—');const min=calcDay(v.s,v.p,v.e,st);tot+=min;const dt=new Date(m);dt.setDate(dt.getDate()+i);
+    rows+=`<tr><td>${esc(DAYS[i])} ${esc(fmtDate(dt))}</td><td>${esc(STATUS[st])}</td><td>${esc(s)}</td><td>${esc(p)}</td><td>${esc(e)}</td><td>${min>0?esc(roDec(min/60)+' ('+hm(min)+')'):'—'}</td></tr>`;}
+  const email=currentUser&&currentUser.email?esc(currentUser.email):'';
+  $('#print-area').innerHTML=`<h1>Pontaj ${esc(weekKey(monday))} — ${esc($('#week-range').textContent)}</h1>${email?`<p>Angajat: <b>${email}</b></p>`:''}<p>Total lucrat: <b>${esc(roDec(tot/60)+' ('+hm(tot)+')')}</b></p><table><tr><th>Zi</th><th>Status</th><th>Început</th><th>Pauză</th><th>Sfârșit</th><th>Total</th></tr>${rows}</table>`;
   window.print();
 });
 
@@ -519,6 +530,18 @@ $('#btn-forgot')&&$('#btn-forgot').addEventListener('click', async ()=>{
   }catch(err){
     setAuthError(err.message||'Nu s-a putut trimite emailul.');
   }finally{
+    if(btn) btn.disabled=false;
+  }
+});
+
+$('#btn-google')&&$('#btn-google').addEventListener('click', async ()=>{
+  setAuthError('');
+  const btn=$('#btn-google'); if(btn) btn.disabled=true;
+  try{
+    const { error } = await supabase.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: window.location.origin + window.location.pathname } });
+    if(error) throw error;
+  }catch(err){
+    setAuthError(err.message||'Google login indisponibil. Activează providerul Google în Supabase Dashboard → Authentication → Providers.');
     if(btn) btn.disabled=false;
   }
 });
