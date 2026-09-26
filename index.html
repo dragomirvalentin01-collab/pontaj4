@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=28">
+<link rel="stylesheet" href="styles.css?v=29">
 </head>
 <body>
 <header class="topbar">
@@ -67,24 +67,13 @@
 
     <section id="days" class="days"></section>
 
-    <section class="card row-actions">
-      <button id="btn-copy-weekdays" class="btn small">🧮 Copiază Luni → Mar–Vin</button>
-      <button id="btn-clear" class="btn small danger-ghost">🗑️ Șterge săptămâna</button>
-    </section>
-
-    <section class="card row-actions">
-      <button id="btn-export" class="btn small">💾 Export backup (JSON)</button>
-      <button id="btn-import" class="btn small">📥 Import backup</button>
-      <input id="file-import" type="file" accept="application/json,.json" hidden>
-    </section>
-
     <section class="card">
       <h2>🗂️ Istoric săptămâni</h2>
       <p class="muted small">Sincronizare automată în cloud. Atinge o săptămână pentru a o deschide.</p>
       <ul id="history" class="history"></ul>
     </section>
 
-    <p class="muted small center">☁️ Datele sunt legate de contul tău • <span id="app-ver">v28</span></p>
+    <p class="muted small center">☁️ Datele sunt legate de contul tău • <span id="app-ver">v29</span></p>
   </div>
 </main>
 
@@ -97,7 +86,7 @@
 <div id="print-area"></div>
 <div id="sw-toast" class="sw-toast" hidden><span>Versiune nouă disponibilă.</span><button id="sw-reload" class="btn small primary" type="button">Reîncarcă</button></div>
 
-<script type="module" src="app.js?v=28"></script>
+<script type="module" src="app.js?v=29"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));

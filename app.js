@@ -260,6 +260,7 @@ function recalc(){
     const s=card.querySelector('.in-s').value,p=card.querySelector('.in-p').value,e=card.querySelector('.in-e').value;
     const min=calcDay(s,p,e,st);total+=min;if(min>0)days++;
     const out=card.querySelector('.day-total');
+    out.classList.toggle('bare',st!=='lucru');
     if(st!=='lucru'){out.innerHTML=`<span class="day-badge b-${st}">${STATUS[st]}</span>`;}
     else{out.textContent=min>0?`${roDec(min/60)} (${hm(min)})`:'—';}
     card.querySelectorAll('.chip').forEach(c=>{const on=String(p||'')===c.dataset.p;c.classList.toggle('on',on);c.setAttribute('aria-pressed',on?'true':'false');});
@@ -289,73 +290,6 @@ function mondayFromWeek(y,w){const jan4=new Date(y,0,4);const d=getMonday(jan4);
 $('#btn-prev')&&($('#btn-prev').onclick=()=>{monday.setDate(monday.getDate()-7);render();});
 $('#btn-next')&&($('#btn-next').onclick=()=>{monday.setDate(monday.getDate()+7);render();});
 $('#btn-today')&&($('#btn-today').onclick=()=>{monday=getMonday(new Date());render();});
-$('#btn-clear')&&($('#btn-clear').onclick=async()=>{if(!confirm('Ștergi toate orele din săptămâna afișată?'))return;const k=weekKey(monday);try{localStorage.removeItem(kWeek(k));localStorage.removeItem(kTs(k));const lk=legacyWeekKey(monday);if(lk)localStorage.removeItem(kWeek(lk));}catch{} await cloudDeleteWeek(k); render();});
-$('#btn-copy-weekdays')&&($('#btn-copy-weekdays').onclick=()=>{const f=document.querySelectorAll('.day')[0];const s=f.querySelector('.in-s').value,p=f.querySelector('.in-p').value,e=f.querySelector('.in-e').value;document.querySelectorAll('.day').forEach((c,i)=>{if(i>=1&&i<=4){c.querySelector('.in-s').value=s;c.querySelector('.in-p').value=p;c.querySelector('.in-e').value=e;}});recalc();saveWeek();});
-$('#btn-export')&&($('#btn-export').onclick=()=>{
-  const data={};const scope=lsScope();
-  for(let i=0;i<localStorage.length;i++){
-    const k=localStorage.key(i);
-    if(!k||k.indexOf(scope)!==0) continue;
-    const wk=k.slice(scope.length);
-    if(!isWeekKey(wk)) continue;
-    try{data['pontaj:'+wk]=JSON.parse(localStorage.getItem(k));}catch{}
-  }
-  if(!Object.keys(data).length){alert('Nu ai săptămâni salvate de exportat.');return;}
-  data._exportedAt=new Date().toISOString();data._app='pontaj';
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  const d=new Date();const stamp=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  a.download='pontaj-backup-'+stamp+'.json';document.body.appendChild(a);a.click();
-  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
-});
-$('#btn-import')&&($('#btn-import').onclick=()=>$('#file-import').click());
-$('#file-import')&&($('#file-import').onchange=(ev)=>{
-  const f=ev.target.files&&ev.target.files[0];if(!f)return;
-  if(f.size>1024*1024){alert('Fișierul e prea mare (max 1 MB).');ev.target.value='';return;}
-  const rd=new FileReader();
-  rd.onload=async()=>{
-    try{
-      const data=JSON.parse(rd.result);
-      if(!data||typeof data!=='object')throw new Error('bad');
-      const keys=Object.keys(data).filter(k=>k.indexOf('pontaj:')===0&&isWeekKey(k.slice(7)));
-      if(!keys.length){alert('Fișierul nu conține backup de pontaj.');return;}
-      const clean={};let skipped=0;
-      keys.forEach(k=>{
-        const week=data[k];
-        if(!week||typeof week!=='object'){skipped++;return;}
-        const days={};let ok=false;
-        Object.keys(week).forEach(di=>{
-          if(!/^[0-6]$/.test(di))return;
-          const v=sanitizeDay(week[di]);
-          if(v.s||v.p||v.e||(v.t&&v.t!=='lucru'))ok=true;
-          days[di]=v;
-        });
-        if(!ok&&Object.keys(days).length===0){skipped++;return;}
-        clean[k]=days;
-      });
-      const good=Object.keys(clean);
-      if(!good.length){alert('Fișierul nu conține intrări valide.');return;}
-      if(!confirm('Import '+good.length+' intrări?'+(skipped?' ('+skipped+' ignorate ca invalide)':'')+' Datele existente cu aceeași cheie se suprascriu.'))return;
-      for(const fk of good){
-        const wk=fk.slice(7);
-        localStorage.setItem(kWeek(wk),JSON.stringify(clean[fk]));
-        localStorage.setItem(kTs(wk),String(Date.now()));
-        await cloudPushWeek(wk);
-      }
-      // rebuild index
-      const idx=getIndex();
-      good.forEach(fk=>{
-        const wk=fk.slice(7);
-        if(!idx.includes(wk)) idx.push(wk);
-      });
-      idx.sort().reverse();
-      localStorage.setItem(kIndex(), JSON.stringify(idx.slice(0,52)));
-      render();alert('Import gata: '+good.length+' intrări.');
-    }catch{alert('Fișier invalid. Alege un JSON exportat din Pontaj.');}
-    ev.target.value='';
-  };
-  rd.readAsText(f);
-});
 $('#btn-print')&&($('#btn-print').onclick=()=>{
   const m=new Date(monday);let rows='',tot=0;
   for(let i=0;i<7;i++){const card=document.querySelectorAll('.day')[i];const raw={s:card.querySelector('.in-s').value,p:card.querySelector('.in-p').value,e:card.querySelector('.in-e').value,t:card.dataset.status||'lucru'};const v=sanitizeDay(raw);const st=normStatus(v.t);const s=st!=='lucru'?'—':(v.s||'—'),p=st!=='lucru'?'—':((v.p||'0')+' min'),e=st!=='lucru'?'—':(v.e||'—');const min=calcDay(v.s,v.p,v.e,st);tot+=min;const dt=new Date(m);dt.setDate(dt.getDate()+i);

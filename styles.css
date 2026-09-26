@@ -25,6 +25,7 @@ main{max-width:640px;margin:0 auto;padding:12px;display:grid;gap:12px}
 .day.st-medical{border-left-color:#ef4444}
 .day.today{outline:2px solid var(--acc)}.day-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.day-head b{font-size:15px}.day-head span{font-size:12px;color:var(--muted)}
 .day-total{font-weight:800;background:color-mix(in srgb,var(--acc) 18%,transparent);padding:5px 10px;border-radius:99px;font-size:13px;white-space:nowrap}
+.day-total.bare{background:none;padding:0}
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}label{font-size:12px;color:var(--muted);display:grid;gap:4px}input{width:100%;padding:10px 8px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:16px}
 .status-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
 .st-btn{flex:1;min-width:0;font-size:12px;font-weight:600;padding:8px 4px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer;transition:background .2s,transform .12s,opacity .2s;white-space:nowrap}
@@ -38,7 +39,6 @@ main{max-width:640px;margin:0 auto;padding:12px;display:grid;gap:12px}
 .day-badge.b-liber{background:rgba(234,179,8,.15);color:#facc15}
 .day-badge.b-medical{background:rgba(239,68,68,.15);color:#f87171}
 .chips{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}.chip{font-size:12px;padding:6px 10px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer}.chip.on{background:var(--acc);color:#06283a;border-color:transparent;font-weight:700}
-.row-actions{display:flex;gap:8px}
 .row{display:flex;gap:8px;align-items:center}
 .wrap{flex-wrap:wrap}
 .history{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}.history li{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px}.history button{cursor:pointer}
