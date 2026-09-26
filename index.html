@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=27">
+<link rel="stylesheet" href="styles.css?v=28">
 </head>
 <body>
 <header class="topbar">
@@ -52,9 +52,10 @@
       <button id="btn-prev" class="btn" aria-label="Săptămâna anterioară">‹</button>
       <div class="week-nav-mid">
         <strong id="week-range">–</strong>
-        <div class="week-nav-sub"><button id="btn-today" class="link">Săptămâna curentă</button><span id="save-dot" class="save-dot">● salvat</span><span id="cloud-dot" class="cloud-dot">● sincronizat</span></div>
+        <div class="week-nav-sub"><button id="btn-today" class="link">Săptămâna curentă</button></div>
       </div>
       <button id="btn-next" class="btn" aria-label="Săptămâna următoare">›</button>
+      <div class="sync-row"><span id="save-dot" class="save-dot">● salvat</span><span id="cloud-dot" class="cloud-dot">● sincronizat</span></div>
     </section>
 
     <section class="total card highlight">
@@ -83,12 +84,7 @@
       <ul id="history" class="history"></ul>
     </section>
 
-    <p class="muted small center">☁️ Datele sunt legate de contul tău • Ștergerea cache-ului nu le mai șterge • <span id="app-ver">v27</span></p>
-
-    <section class="card" id="instalare-ajutor">
-      <h2>📲 Instalare pe Android</h2>
-      <p class="muted small">1. Deschide linkul HTTPS în <b>Chrome</b> (nu din Facebook/WhatsApp viewer).<br>2. Meniu ⋮ → <b>Adaugă pe ecranul de pornire</b> / <b>Instalează aplicația</b>.<br>3. Dacă nu apare, folosește butonul 📲 Instalează de sus.</p>
-    </section>
+    <p class="muted small center">☁️ Datele sunt legate de contul tău • <span id="app-ver">v28</span></p>
   </div>
 </main>
 
@@ -101,7 +97,7 @@
 <div id="print-area"></div>
 <div id="sw-toast" class="sw-toast" hidden><span>Versiune nouă disponibilă.</span><button id="sw-reload" class="btn small primary" type="button">Reîncarcă</button></div>
 
-<script type="module" src="app.js?v=27"></script>
+<script type="module" src="app.js?v=28"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));
