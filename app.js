@@ -302,9 +302,12 @@ $('#btn-print')&&($('#btn-print').onclick=()=>{
   window.print();
 });
 
-// theme
-function setTheme(t){document.documentElement.dataset.theme=t;localStorage.setItem(K_THEME,t);const b=$('#btn-theme'); if(b) b.textContent=t==='dark'?'🌙':'☀️';const mt=$('#meta-theme'); if(mt) mt.content=t==='dark'?'#0f172a':'#ffffff';}
-$('#btn-theme')&&($('#btn-theme').onclick=()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark'));
+// theme (dark/light/ocean/forest)
+const THEMES=['dark','light','ocean','forest'];
+const THEME_ICON={dark:'\uD83C\uDF19',light:'\u2600\uFE0F',ocean:'\uD83C\uDF0A',forest:'\uD83C\uDF32'};
+const THEME_META={dark:'#0f172a',light:'#ffffff',ocean:'#0c4a6e',forest:'#064e3b'};
+function setTheme(t){if(!THEMES.includes(t))t='dark';document.documentElement.dataset.theme=t;localStorage.setItem(K_THEME,t);const b=$('#btn-theme');if(b)b.textContent=THEME_ICON[t]||'\uD83C\uDF19';const mt=$('#meta-theme');if(mt)mt.content=THEME_META[t]||'#0f172a';}
+$('#btn-theme')&&($('#btn-theme').onclick=()=>{const cur=document.documentElement.dataset.theme||'dark';setTheme(THEMES[(THEMES.indexOf(cur)+1)%THEMES.length]);});
 setTheme(localStorage.getItem(K_THEME)||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'));
 
 // install
