@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=36">
+<link rel="stylesheet" href="styles.css?v=37">
 </head>
 <body>
 <header class="topbar">
@@ -88,16 +88,8 @@
             <span class="ot-badge" id="ot-badge" hidden>+0 h 🔥</span>
           </div>
         </div>
-        <!-- target settings (colapsed by default) -->
-        <div id="target-settings" hidden>
-          <input type="number" id="target-hours" value="38" min="1" max="80" step="0.5"
-                 style="width:70px;padding:6px 8px;font-size:14px" aria-label="Ore țintă pe săptămână">
-          <span class="muted small">h/săpt.</span>
-          <button class="btn small" id="btn-target-save" type="button">Salvează</button>
-        </div>
       </div>
       <div class="total-actions" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-        <button class="btn ghost small" id="btn-target-toggle" type="button" title="Setează ținta săptămânală" aria-label="Setează ținta">🎯 Țintă</button>
         <button id="btn-print" class="btn ghost small">📄 Export / PDF</button>
       </div>
     </div>
@@ -110,7 +102,7 @@
       <ul id="history" class="history"></ul>
     </section>
 
-    <p class="muted small center">☁️ Datele sunt legate de contul tău • <span id="app-ver">v36</span></p>
+    <p class="muted small center">☁️ Datele sunt legate de contul tău • <span id="app-ver">v37</span></p>
   </div>
 </main>
 
@@ -123,7 +115,7 @@
 <div id="print-area"></div>
 <div id="sw-toast" class="sw-toast" hidden><span>Versiune nouă disponibilă.</span><button id="sw-reload" class="btn small primary" type="button">Reîncarcă</button></div>
 
-<script type="module" src="app.js?v=36"></script>
+<script type="module" src="app.js?v=37"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));

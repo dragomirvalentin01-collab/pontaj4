@@ -269,7 +269,7 @@ function recalc(){
     card.querySelectorAll('.chip').forEach(c=>{const on=String(p||'')===c.dataset.p;c.classList.toggle('on',on);c.setAttribute('aria-pressed',on?'true':'false');});
   });
   const td=$('#total-dec'); if(td) td.textContent=roDec(total/60);
-  const th=$('#total-hm'); if(th) th.textContent=`${hm(total)} • ${days} ${days===1?'zi':'zile'}`;
+  const th=$('#total-hm'); if(th) th.textContent=`${roDec(total/60).replace(/ h$/, '')} \u2022 ${days} ${days===1?'zi':'zile'}`;
 
   updateProgress(total);
 }
@@ -306,7 +306,7 @@ function updateProgress(totalMin) {
   const badge = $('#ot-badge');
   if (badge) {
     badge.hidden = over <= 0;
-    if (over > 0) badge.textContent = '+' + roDec(over / 60) + ' h 🔥';
+    if (over > 0) badge.textContent = '+' + roDec(over / 60) + ' 🔥';
   }
   const st = $('#total-status');
   if (st) {
@@ -314,98 +314,6 @@ function updateProgress(totalMin) {
     st.textContent = totalMin <= 0 ? '' : r < 0.5 ? '🌱' : r < 1 ? '💪' : over > 0 ? '🔥' : '✅';
   }
 }
-(function targetSettings(){
-  const t = $('#target-hours'); if (t) t.value = getTarget();
-  const tg = $('#btn-target-toggle'), box = $('#target-settings');
-  if (tg && box) tg.addEventListener('click', (ev) => { ev.stopPropagation(); box.hidden = !box.hidden; if (!box.hidden && t) { t.value = getTarget(); t.focus(); t.select(); } });
-  const sv = $('#btn-target-save');
-  if (sv) sv.addEventListener('click', () => {
-    const v = parseFloat(t ? t.value : '');
-    if (!Number.isFinite(v) || v <= 0 || v > 80) { if (t) { t.focus(); t.select(); } return; }
-    setTarget(v);
-    if (box) box.hidden = true;
-    recalc();
-  });
-});
-function renderHistory(){
-  if(!histEl) return;
-  const idx=getIndex().filter(isWeekKey);histEl.innerHTML=idx.length?'':'<li class="muted">Nicio săptămână salvată încă.</li>';
-  idx.slice(0,12).forEach(k=>{
-    let tot=0;const d=loadWeek(k);Object.values(d).forEach(raw=>{const v=sanitizeDay(raw);tot+=calcDay(v.s,v.p,v.e,v.t);});
-    const li=document.createElement('li');
-    const b=document.createElement('b');b.textContent=k;
-    const sub=document.createElement('span');sub.className='muted';sub.textContent=`${roDec(tot/60)} • ${hm(tot)}`;
-    const left=document.createElement('span');left.append(b,document.createElement('br'),sub);
-    const open=document.createElement('button');open.className='btn small';open.textContent='Deschide';open.setAttribute('aria-label','Deschide săptămâna '+k);open.onclick=()=>{const[y,w]=k.split('-W');monday=mondayFromWeek(+y,+w);render();window.scrollTo({top:0,behavior:'smooth'});};
-    const del=document.createElement('button');del.className='btn small';del.textContent='✕';del.setAttribute('aria-label','Șterge săptămâna '+k);
-    del.onclick=async()=>{if(!confirm('Ștergi '+k+'?'))return;localStorage.removeItem(kWeek(k));localStorage.removeItem(kTs(k));localStorage.setItem(kIndex(),JSON.stringify(getIndex().filter(x=>x!==k)));await cloudDeleteWeek(k);renderHistory();recalc();if(weekKey(monday)===k) render();};
-    const right=document.createElement('span');right.append(open,' ',del);
-    li.append(left,right);
-    histEl.appendChild(li);
-  });
-}
-function mondayFromWeek(y,w){const jan4=new Date(y,0,4);const d=getMonday(jan4);d.setDate(d.getDate()+(w-1)*7);return d;}
-
-$('#btn-prev')&&($('#btn-prev').onclick=()=>{monday.setDate(monday.getDate()-7);render();});
-$('#btn-next')&&($('#btn-next').onclick=()=>{monday.setDate(monday.getDate()+7);render();});
-$('#week-range')&&($('#week-range').onclick=()=>{const now=getMonday(new Date());if(weekKey(now)!==weekKey(monday)){monday=now;render();window.scrollTo({top:0,behavior:'smooth'});}});
-$('#btn-print')&&($('#btn-print').onclick=()=>{
-  const m=new Date(monday);let rows='',tot=0;
-  for(let i=0;i<7;i++){const card=document.querySelectorAll('.day')[i];const raw={s:card.querySelector('.in-s').value,p:card.querySelector('.in-p').value,e:card.querySelector('.in-e').value,t:card.dataset.status||'lucru'};const v=sanitizeDay(raw);const st=normStatus(v.t);const s=st!=='lucru'?'—':(v.s||'—'),p=st!=='lucru'?'—':((v.p||'0')+' min'),e=st!=='lucru'?'—':(v.e||'—');const min=calcDay(v.s,v.p,v.e,st);tot+=min;const dt=new Date(m);dt.setDate(dt.getDate()+i);
-    rows+=`<tr><td>${esc(DAYS[i])} ${esc(fmtDate(dt))}</td><td>${esc(STATUS[st])}</td><td>${esc(s)}</td><td>${esc(p)}</td><td>${esc(e)}</td><td>${min>0?esc(roDec(min/60)+' ('+hm(min)+')'):'—'}</td></tr>`;}
-  const email=currentUser&&currentUser.email?esc(currentUser.email):'';
-  $('#print-area').innerHTML=`<h1>Pontaj ${esc(weekKey(monday))} — ${esc($('#week-range').textContent)}</h1>${email?`<p>Angajat: <b>${email}</b></p>`:''}<p>Total lucrat: <b>${esc(roDec(tot/60)+' ('+hm(tot)+')')}</b></p><table><tr><th>Zi</th><th>Status</th><th>Început</th><th>Pauză</th><th>Sfârșit</th><th>Total</th></tr>${rows}</table>`;
-  window.print();
-});
-
-// ---- theme picker ----
-const THEMES = ['dark','light','ocean','forest','berry','sunset','midnight'];
-
-function setTheme(t) {
-  if (!THEMES.includes(t)) t = 'dark';
-  document.documentElement.dataset.theme = t;
-  localStorage.setItem(K_THEME, t);
-  const mt = $('#meta-theme');
-  if (mt) {
-    const style = getComputedStyle(document.documentElement);
-    const bg = style.getPropertyValue('--bg').trim();
-    if (bg) mt.content = bg;
-  }
-  document.querySelectorAll('.theme-opt').forEach(btn => {
-    const active = btn.dataset.theme === t;
-    btn.classList.toggle('active', active);
-    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
-  });
-  const iconMap = {
-    dark:'\u{1F319}', light:'\u2600\uFE0F', ocean:'\u{1F30A}', forest:'\u{1F332}',
-    berry:'\u{1F347}', sunset:'\u{1F305}', midnight:'\u{1F5A4}'
-  };
-  const main = $('#btn-theme-pick');
-  if (main) main.textContent = iconMap[t] || '\u{1F3A8}';
-}
-
-(function themePicker(){
-  const pick = $('#btn-theme-pick'), dd = $('#theme-dropdown');
-  if (pick && dd) {
-    pick.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      dd.hidden = !dd.hidden;
-    });
-  }
-  document.querySelectorAll('.theme-opt').forEach(btn => {
-    btn.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      setTheme(btn.dataset.theme);
-      if (dd) dd.hidden = true;
-    });
-  });
-  document.addEventListener('click', (e) => {
-    if (dd && !dd.hidden && !e.target.closest('.theme-picker')) dd.hidden = true;
-  });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && dd) dd.hidden = true;
-  });
-})();
 setTheme(localStorage.getItem(K_THEME)||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'));
 
 // install
