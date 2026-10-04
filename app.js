@@ -269,7 +269,7 @@ function recalc(){
     card.querySelectorAll('.chip').forEach(c=>{const on=String(p||'')===c.dataset.p;c.classList.toggle('on',on);c.setAttribute('aria-pressed',on?'true':'false');});
   });
   const td=$('#total-dec'); if(td) td.textContent=roDec(total/60);
-  const th=$('#total-hm'); if(th) th.textContent=`${roDec(total/60).replace(/ h$/, '')} \u2022 ${days} ${days===1?'zi':'zile'}`;
+  const th=$('#total-hm'); if(th) th.textContent=`${days} ${days===1?'zi lucrat\u0103':'zile lucrate'}`;
 
   updateProgress(total);
 }
