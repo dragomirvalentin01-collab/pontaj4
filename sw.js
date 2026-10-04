@@ -1,6 +1,6 @@
-const C='pontaj-v33';
+const C='pontaj-v34';
 const ASSETS=[
-  './','./index.html','./styles.css?v=33','./app.js?v=33',
+  './','./index.html','./styles.css?v=34','./app.js?v=34',
   './vendor/supabase.esm.js',
   './manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./icon-maskable-512.png'
 ];

@@ -302,12 +302,54 @@ $('#btn-print')&&($('#btn-print').onclick=()=>{
   window.print();
 });
 
-// theme (dark/light/ocean/forest)
-const THEMES=['dark','light','ocean','forest','berry','sunset','midnight'];
-const THEME_ICON={dark:'\uD83C\uDF19',light:'\u2600\uFE0F',ocean:'\uD83C\uDF0A',forest:'\uD83C\uDF32',berry:'\uD83C\uDF47',sunset:'\uD83C\uDF05',midnight:'\uD83D\uDD73'};
-const THEME_META={dark:'#0f172a',light:'#ffffff',ocean:'#0c4a6e',forest:'#064e3b',berry:'#4a044e',sunset:'#7c2d12',midnight:'#0a0a0f'};
-function setTheme(t){if(!THEMES.includes(t))t='dark';document.documentElement.dataset.theme=t;localStorage.setItem(K_THEME,t);const b=$('#btn-theme');if(b)b.textContent=THEME_ICON[t]||'\uD83C\uDF19';const mt=$('#meta-theme');if(mt)mt.content=THEME_META[t]||'#0f172a';}
-$('#btn-theme')&&($('#btn-theme').onclick=()=>{const cur=document.documentElement.dataset.theme||'dark';setTheme(THEMES[(THEMES.indexOf(cur)+1)%THEMES.length]);});
+// ---- theme picker ----
+const THEMES = ['dark','light','ocean','forest','berry','sunset','midnight'];
+
+function setTheme(t) {
+  if (!THEMES.includes(t)) t = 'dark';
+  document.documentElement.dataset.theme = t;
+  localStorage.setItem(K_THEME, t);
+  const mt = $('#meta-theme');
+  if (mt) {
+    const style = getComputedStyle(document.documentElement);
+    const bg = style.getPropertyValue('--bg').trim();
+    if (bg) mt.content = bg;
+  }
+  document.querySelectorAll('.theme-opt').forEach(btn => {
+    const active = btn.dataset.theme === t;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+  const iconMap = {
+    dark:'\u{1F319}', light:'\u2600\uFE0F', ocean:'\u{1F30A}', forest:'\u{1F332}',
+    berry:'\u{1F347}', sunset:'\u{1F305}', midnight:'\u{1F5A4}'
+  };
+  const main = $('#btn-theme-pick');
+  if (main) main.textContent = iconMap[t] || '\u{1F3A8}';
+}
+
+(function themePicker(){
+  const pick = $('#btn-theme-pick'), dd = $('#theme-dropdown');
+  if (pick && dd) {
+    pick.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      dd.hidden = !dd.hidden;
+    });
+  }
+  document.querySelectorAll('.theme-opt').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      setTheme(btn.dataset.theme);
+      if (dd) dd.hidden = true;
+    });
+  });
+  document.addEventListener('click', (e) => {
+    if (dd && !dd.hidden && !e.target.closest('.theme-picker')) dd.hidden = true;
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && dd) dd.hidden = true;
+  });
+})();
 setTheme(localStorage.getItem(K_THEME)||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'));
 
 // install
