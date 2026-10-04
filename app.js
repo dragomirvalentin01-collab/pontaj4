@@ -270,7 +270,63 @@ function recalc(){
   });
   const td=$('#total-dec'); if(td) td.textContent=roDec(total/60);
   const th=$('#total-hm'); if(th) th.textContent=`${hm(total)} • ${days} ${days===1?'zi':'zile'}`;
+
+  updateProgress(total);
 }
+
+// ---- tinta saptamanala + progress ----
+const K_TARGET = 'pontaj:target';
+const DEFAULT_TARGET = 38; // 38h implicit
+function getTarget() {
+  try {
+    const v = parseFloat(localStorage.getItem(K_TARGET));
+    if (Number.isFinite(v) && v > 0 && v <= 80) return v;
+  } catch {}
+  return DEFAULT_TARGET;
+}
+function setTarget(h) {
+  localStorage.setItem(K_TARGET, String(h));
+}
+function updateProgress(totalMin) {
+  const fill = $('#progress-fill'); if (!fill) return;
+  const targetMin = getTarget() * 60;
+  const scale = Math.max(totalMin, targetMin, 1);
+  const inTarget = Math.min(totalMin, targetMin);
+  const over = Math.max(0, totalMin - targetMin);
+  fill.style.width = (inTarget / scale * 100) + '%';
+  fill.classList.toggle('complete', totalMin >= targetMin && over <= 0);
+  fill.classList.toggle('over', over > 0);
+  const ot = $('#progress-ot');
+  if (ot) {
+    ot.style.width = (over / scale * 100) + '%';
+    ot.classList.toggle('warn', over > targetMin * 0.2);
+  }
+  const label = $('#progress-label');
+  if (label) label.textContent = roDec(totalMin / 60) + ' / ' + getTarget() + ' h';
+  const badge = $('#ot-badge');
+  if (badge) {
+    badge.hidden = over <= 0;
+    if (over > 0) badge.textContent = '+' + roDec(over / 60) + ' h 🔥';
+  }
+  const st = $('#total-status');
+  if (st) {
+    const r = targetMin > 0 ? totalMin / targetMin : 0;
+    st.textContent = totalMin <= 0 ? '' : r < 0.5 ? '🌱' : r < 1 ? '💪' : over > 0 ? '🔥' : '✅';
+  }
+}
+(function targetSettings(){
+  const t = $('#target-hours'); if (t) t.value = getTarget();
+  const tg = $('#btn-target-toggle'), box = $('#target-settings');
+  if (tg && box) tg.addEventListener('click', (ev) => { ev.stopPropagation(); box.hidden = !box.hidden; if (!box.hidden && t) { t.value = getTarget(); t.focus(); t.select(); } });
+  const sv = $('#btn-target-save');
+  if (sv) sv.addEventListener('click', () => {
+    const v = parseFloat(t ? t.value : '');
+    if (!Number.isFinite(v) || v <= 0 || v > 80) { if (t) { t.focus(); t.select(); } return; }
+    setTarget(v);
+    if (box) box.hidden = true;
+    recalc();
+  });
+});
 function renderHistory(){
   if(!histEl) return;
   const idx=getIndex().filter(isWeekKey);histEl.innerHTML=idx.length?'':'<li class="muted">Nicio săptămână salvată încă.</li>';

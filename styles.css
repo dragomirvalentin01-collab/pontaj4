@@ -177,3 +177,61 @@ main{max-width:640px;margin:0 auto;padding:12px;display:grid;gap:12px}
   background: color-mix(in srgb, var(--acc) 30%, transparent);
   font-weight: 700;
 }
+
+/* === Progress bar === */
+.progress-track {
+  width: 100%;
+  height: 10px;
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  border-radius: 99px;
+  overflow: hidden;
+  display: flex;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--acc), #0ea5e9);
+  border-radius: 99px;
+  transition: width .4s ease;
+  min-width: 0;
+}
+.progress-fill.complete {
+  background: linear-gradient(90deg, var(--ok), #4ade80);
+}
+.progress-fill.over {
+  background: linear-gradient(90deg, var(--ok), #22c55e);
+}
+.progress-ot {
+  height: 100%;
+  background: linear-gradient(90deg, #f97316, #ef4444);
+  border-radius: 0 99px 99px 0;
+  transition: width .4s ease;
+  min-width: 0;
+}
+.progress-ot.warn {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+.ot-badge {
+  background: #f97316;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  animation: otPulse 1.8s ease-in-out infinite;
+}
+@keyframes otPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: .85; transform: scale(1.04); }
+}
+#total-status {
+  font-size: 16px;
+}
+#target-settings {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+#target-settings[hidden] {
+  display: none;
+}

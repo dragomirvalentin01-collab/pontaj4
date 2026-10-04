@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=35">
+<link rel="stylesheet" href="styles.css?v=36">
 </head>
 <body>
 <header class="topbar">
@@ -69,12 +69,38 @@
       <button id="btn-next" class="btn" aria-label="Săptămâna următoare">›</button>
     </section>
 
-    <section class="total card highlight">
-      <div><span class="lbl">Total săptămânal</span><strong id="total-dec">0,00 h</strong><span id="total-hm" class="muted">0:00 • 0 zile</span></div>
-      <div class="total-actions">
-        <button id="btn-print" class="btn primary">📄 Export / PDF</button>
+    <div class="card highlight">
+      <div style="flex:1">
+        <span class="lbl">Total săptămânal</span>
+        <span id="total-dec">0,00 h</span>
+        <div class="row wrap" style="align-items:center;gap:6px">
+          <span id="total-status"></span>
+          <span id="total-hm">0:00 • 0 zile</span>
+        </div>
+        <!-- progress bar -->
+        <div class="progress-wrap" style="margin-top:10px">
+          <div class="progress-track">
+            <div class="progress-fill" id="progress-fill"></div>
+            <div class="progress-ot" id="progress-ot"></div>
+          </div>
+          <div class="progress-info row wrap" style="justify-content:space-between;margin-top:4px">
+            <span class="muted small" id="progress-label">0 / 38 h</span>
+            <span class="ot-badge" id="ot-badge" hidden>+0 h 🔥</span>
+          </div>
+        </div>
+        <!-- target settings (colapsed by default) -->
+        <div id="target-settings" hidden>
+          <input type="number" id="target-hours" value="38" min="1" max="80" step="0.5"
+                 style="width:70px;padding:6px 8px;font-size:14px" aria-label="Ore țintă pe săptămână">
+          <span class="muted small">h/săpt.</span>
+          <button class="btn small" id="btn-target-save" type="button">Salvează</button>
+        </div>
       </div>
-    </section>
+      <div class="total-actions" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        <button class="btn ghost small" id="btn-target-toggle" type="button" title="Setează ținta săptămânală" aria-label="Setează ținta">🎯 Țintă</button>
+        <button id="btn-print" class="btn ghost small">📄 Export / PDF</button>
+      </div>
+    </div>
 
     <section id="days" class="days"></section>
 
@@ -84,7 +110,7 @@
       <ul id="history" class="history"></ul>
     </section>
 
-    <p class="muted small center">☁️ Datele sunt legate de contul tău • <span id="app-ver">v35</span></p>
+    <p class="muted small center">☁️ Datele sunt legate de contul tău • <span id="app-ver">v36</span></p>
   </div>
 </main>
 
@@ -97,7 +123,7 @@
 <div id="print-area"></div>
 <div id="sw-toast" class="sw-toast" hidden><span>Versiune nouă disponibilă.</span><button id="sw-reload" class="btn small primary" type="button">Reîncarcă</button></div>
 
-<script type="module" src="app.js?v=35"></script>
+<script type="module" src="app.js?v=36"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));
