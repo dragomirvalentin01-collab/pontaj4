@@ -108,13 +108,20 @@ function saveWeek(){
 }
 function getIndex(){try{return JSON.parse(localStorage.getItem(kIndex()))||[]}catch{return[]}}
 
+function showSaveToast(){
+  const el=$('#save-toast'); if(!el) return;
+  el.hidden=false;
+  setTimeout(()=>el.hidden=true, 2000);
+}
+
 function setCloudDot(state,msg){
   const el=$('#cloud-dot'); if(!el) return;
   el.classList.remove('ok','sync','err');
-  if(state==='ok'){ el.classList.add('ok'); el.textContent='● sincronizat'; el.removeAttribute('title'); }
-  else if(state==='sync'){ el.classList.add('sync'); el.textContent='● se sincronizează…'; }
-  else if(state==='err'){ el.classList.add('err'); el.textContent='● offline'; if(msg) el.title=msg; }
-  else { el.textContent='● sincronizat'; }
+  el.hidden=false;
+  if(state==='ok'){ el.classList.add('ok'); el.textContent='✓'; el.removeAttribute('title'); }
+  else if(state==='sync'){ el.classList.add('sync'); el.textContent='▶'; }
+  else if(state==='err'){ el.classList.add('err'); el.textContent='✗'; if(msg) el.title=msg; }
+  else { el.textContent='✓'; }
 }
 
 function scheduleCloudPush(k){
@@ -139,6 +146,7 @@ async function cloudPushWeek(k){
       if(error) throw error;
     }
     setCloudDot('ok');
+    showSaveToast();
   }catch(e){
     console.warn('cloud push failed', e);
     setCloudDot('err', e.message||'eroare');

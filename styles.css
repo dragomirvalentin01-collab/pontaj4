@@ -226,3 +226,33 @@ main{max-width:640px;margin:0 auto;padding:12px;display:grid;gap:12px}
 #total-status {
   font-size: 16px;
 }
+
+.cloud-dot {
+  margin-left: 6px;
+  font-size: 10px;
+}
+.cloud-dot.ok { color: var(--ok); }
+.cloud-dot.sync { color: var(--acc); animation: blink 1s step-end infinite; }
+.cloud-dot.err { color: var(--err); }
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.save-toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ok);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  z-index: 1000;
+  animation: slideUp 0.3s ease-out;
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
