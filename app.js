@@ -1,4 +1,5 @@
 // supabase-js e bundlat local (vendor/supabase.esm.js) ca app-ul sa boot-eze si offline
+// v39 - test commit
 import { createClient } from './vendor/supabase.esm.js';
 
 const SUPABASE_URL = 'https://nkqncfxmarlcwvzqzzbl.supabase.co';
