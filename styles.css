@@ -255,4 +255,360 @@ main{max-width:640px;margin:0 auto;padding:12px;display:grid;gap:12px}
 @keyframes slideUp {
   from { opacity: 0; transform: translateX(-50%) translateY(20px); }
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ===== MODERN REDESIGN ===== */
+
+/* Carduri cu border-radius mai mare și umbre */
+.card {
+  border-radius: 20px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Card highlight (total săptămânal) */
+.card.highlight {
+  background: linear-gradient(135deg, var(--card) 0%, color-mix(in srgb, var(--card) 80%, var(--acc) 20%) 100%) !important;
+  border: 1px solid color-mix(in srgb, var(--acc) 30%, transparent) !important;
+}
+
+/* Day cards */
+.day {
+  border-radius: 16px !important;
+  background: var(--card) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border 0.2s ease !important;
+  border: 1px solid color-mix(in srgb, var(--line) 50%, transparent) !important;
+  margin-bottom: 10px !important;
+}
+
+.day:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+  border-color: color-mix(in srgb, var(--acc) 40%, transparent) !important;
+}
+
+.day.today {
+  border-color: var(--acc) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--acc) 30%, transparent) !important;
+}
+
+/* Status buttons - culori distincte */
+.st-btn {
+  padding: 8px 14px !important;
+  border-radius: 25px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+
+.st-btn:hover {
+  transform: scale(1.05) !important;
+  filter: brightness(1.1) !important;
+}
+
+.st-btn.on-lucru, .st-btn[data-st="lucru"] {
+  background: color-mix(in srgb, var(--acc) 20%, var(--card)) !important;
+  color: var(--acc) !important;
+}
+
+.st-btn.on-concediu, .st-btn[data-st="concediu"] {
+  background: color-mix(in srgb, #22c55e 20%, var(--card)) !important;
+  color: #22c55e !important;
+}
+
+.st-btn.on-liber, .st-btn[data-st="liber"] {
+  background: color-mix(in srgb, #f59e0b 20%, var(--card)) !important;
+  color: #f59e0b !important;
+}
+
+.st-btn.on-medical, .st-btn[data-st="medical"] {
+  background: color-mix(in srgb, #ef4444 20%, var(--card)) !important;
+  color: #ef4444 !important;
+}
+
+/* Time inputs */
+.in-s, .in-e, .in-p {
+  padding: 10px 12px !important;
+  border: 1px solid color-mix(in srgb, var(--line) 60%, transparent) !important;
+  border-radius: 10px !important;
+  font-size: 14px !important;
+  background: color-mix(in srgb, var(--bg2) 50%, var(--card)) !important;
+  transition: border 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.in-s:focus, .in-e:focus, .in-p:focus {
+  outline: none !important;
+  border-color: var(--acc) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--acc) 30%, transparent) !important;
+}
+
+/* Chips for pause */
+.chip {
+  padding: 6px 12px !important;
+  border-radius: 20px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+  background: color-mix(in srgb, var(--line) 30%, var(--card)) !important;
+  color: var(--text) !important;
+  border: 1px solid color-mix(in srgb, var(--line) 50%, transparent) !important;
+}
+
+.chip:hover {
+  background: color-mix(in srgb, var(--line) 40%, var(--card)) !important;
+  transform: scale(1.05) !important;
+}
+
+.chip.on {
+  background: var(--ok) !important;
+  color: white !important;
+  border-color: var(--ok) !important;
+}
+
+/* Progress bar - gradient */
+.progress-fill {
+  background: linear-gradient(90deg, var(--ok), #4ade80, #22c55e) !important;
+  border-radius: 5px !important;
+}
+
+.progress-ot {
+  background: linear-gradient(90deg, #f97316, #ea580c, #dc2626) !important;
+  border-radius: 5px !important;
+}
+
+.progress-track {
+  border-radius: 5px !important;
+  background: color-mix(in srgb, var(--line) 50%, transparent) !important;
+}
+
+/* Total display */
+#total-dec {
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  color: var(--acc) !important;
+}
+
+#total-hm {
+  font-size: 16px !important;
+  color: color-mix(in srgb, var(--text) 70%, transparent) !important;
+}
+
+/* Week nav */
+.week-nav {
+  border-radius: 16px !important;
+  background: var(--card) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05) !important;
+}
+
+.week-nav-mid {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+#week-range {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+}
+
+#week-num {
+  font-size: 12px !important;
+}
+
+/* Cloud dot improvements */
+.cloud-dot {
+  font-size: 12px !important;
+  margin-left: 8px !important;
+}
+
+/* Save toast improvements */
+.save-toast {
+  background: linear-gradient(135deg, var(--ok), #16a34a) !important;
+  color: white !important;
+  padding: 12px 24px !important;
+  border-radius: 12px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+/* Day head */
+.day-head {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 10px !important;
+}
+
+.day-head b {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+}
+
+.day-head span {
+  font-size: 12px !important;
+  color: color-mix(in srgb, var(--text) 70%, transparent) !important;
+}
+
+.day-total {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: var(--ok) !important;
+}
+
+/* Status row */
+.status-row {
+  display: flex !important;
+  gap: 8px !important;
+  margin-bottom: 12px !important;
+  flex-wrap: wrap !important;
+}
+
+/* Grid for time inputs */
+.grid3 {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr 1fr !important;
+  gap: 10px !important;
+}
+
+.grid3 label {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  font-size: 12px !important;
+  color: color-mix(in srgb, var(--text) 70%, transparent) !important;
+}
+
+/* Time wrap */
+.time-wrap {
+  margin-top: 8px !important;
+}
+
+/* history section */
+.history {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.history li {
+  padding: 12px !important;
+  border-radius: 12px !important;
+  margin-bottom: 8px !important;
+  background: color-mix(in srgb, var(--bg2) 50%, var(--card)) !important;
+  transition: background 0.2s ease !important;
+}
+
+.history li:hover {
+  background: color-mix(in srgb, var(--acc) 10%, var(--card)) !important;
+  cursor: pointer !important;
+}
+
+/* Topbar improvements */
+.topbar {
+  padding: 12px 16px !important;
+  gap: 12px !important;
+}
+
+.brand {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.brand h1 {
+  font-size: 18px !important;
+  font-weight: 800 !important;
+}
+
+.brand p {
+  font-size: 12px !important;
+  color: color-mix(in srgb, var(--text) 70%, transparent) !important;
+}
+
+/* Theme picker dropdown */
+.theme-dropdown {
+  border-radius: 12px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
+  padding: 8px !important;
+}
+
+.theme-opt {
+  padding: 10px 14px !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  transition: background 0.2s ease !important;
+}
+
+.theme-opt:hover {
+  background: color-mix(in srgb, var(--line) 30%, var(--card)) !important;
+}
+
+/* Auth card */
+.auth-card {
+  border-radius: 20px !important;
+  padding: 24px !important;
+}
+
+.auth-card h2 {
+  font-size: 18px !important;
+  margin-bottom: 8px !important;
+}
+
+/* Buttons */
+.btn {
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn:active {
+  transform: scale(0.97) !important;
+}
+
+.btn.primary {
+  background: var(--acc) !important;
+  color: white !important;
+}
+
+.btn.ghost {
+  background: color-mix(in srgb, var(--line) 20%, var(--card)) !important;
+  color: var(--text) !important;
+  border: 1px solid color-mix(in srgb, var(--line) 40%, transparent) !important;
+}
+
+/* Google button */
+.google-btn {
+  padding: 12px !important;
+  border-radius: 12px !important;
+  font-size: 14px !important;
+}
+
+/* Dialog (clock picker) */
+#dlg-clock {
+  border-radius: 20px !important;
+  padding: 20px !important;
+}
+
+#dlg-clock::backdrop {
+  background: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+/* Main layout */
+main {
+  max-width: 640px !important;
+  margin: 0 auto !important;
+  padding: 12px !important;
+  display: grid !important;
+  gap: 12px !important;
+}
+
 }
