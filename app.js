@@ -54,7 +54,7 @@ function isWeekKey(k){return /^\d{4}-W(0[1-9]|[1-4][0-9]|5[0-3])$/.test(k||'');}
 function isTimeStr(t){return /^([01]\d|2[0-3]):[0-5]\d$/.test(t||'');}
 function isPauseStr(p){if(p==null||p==='')return true;const n=Number(p);return Number.isFinite(n)&&n>=0&&n<=600;}
 function toMin(t){if(!isTimeStr(t))return null;const[a,b]=t.split(':').map(Number);return a*60+b;}
-function sanitizeDay(v){v=v&&typeof v==='object'?v:{};const s=isTimeStr(v.s)?v.s:'';const e=isTimeStr(v.e)?v.e:'';const p=isPauseStr(v.p)?(v.p==null?'':String(v.p)):'';const t=STATUS_OK.includes(v.t)?v.t:'lucru';return{s,p,e,t};}
+function sanitizeDay(v){v=v&&typeof v==='object'?v:{};const s=isTimeStr(v.s)?v.s:'';const e=isTimeStr(v.e)?v.e:'';const p=isPauseStr(v.p)?(v.p==null?'':String(v.p)):'';const t=STATUS_OK.includes(v.t)?v.t:'lucru';const n=typeof v.n==='string'?v.n.slice(0,200):'';return{s,p,e,t,n};}
 function calcDay(s,p,e,t){if(t&&t!=='lucru')return 0;const a=toMin(s),b=toMin(e);if(a==null||b==null)return 0;let d=b-a;if(d<0)d+=24*60;const pause=parseInt(p||'0',10);if(!Number.isFinite(pause)||pause<0)return Math.max(0,d);return Math.max(0,d-Math.min(600,pause));}
 function hm(min){return `${Math.floor(min/60)}:${String(min%60).padStart(2,'0')}`;}
 
@@ -97,7 +97,7 @@ function scheduleHistory(){clearTimeout(histT);histT=setTimeout(()=>{try{renderH
 function saveWeek(){
   const k=weekKey(monday);
   const data={};
-  document.querySelectorAll('.day').forEach((el,i)=>{const raw={s:el.querySelector('.in-s').value,p:el.querySelector('.in-p').value,e:el.querySelector('.in-e').value,t:el.dataset.status||'lucru'};data[i]=sanitizeDay(raw);});
+  document.querySelectorAll('.day').forEach((el,i)=>{const raw={s:el.querySelector('.in-s').value,p:el.querySelector('.in-p').value,e:el.querySelector('.in-e').value,t:el.dataset.status||'lucru',n:el.querySelector('.in-n')?.value||''};data[i]=sanitizeDay(raw);});
   localStorage.setItem(kWeek(k),JSON.stringify(data));
   localStorage.setItem(kTs(k),String(Date.now()));
   const idx=getIndex();if(!idx.includes(k)){idx.push(k);idx.sort().reverse();localStorage.setItem(kIndex(),JSON.stringify(idx.slice(0,52)));}
@@ -243,15 +243,26 @@ function render(){
     const dt=new Date(m);dt.setDate(dt.getDate()+i);
     const v=sanitizeDay(saved[i]);
     const st=normStatus(v.t);
-    const card=document.createElement('div');card.className='day st-'+st+(dt.toDateString()===todayStr?' today':'');card.dataset.date=dt.toISOString().slice(0,10);card.dataset.status=st;
-    card.innerHTML=`<div class="day-head"><div><b>${DAYS[i]}</b> <span>${fmtDate(dt)}</span></div><span class="day-total"></span></div>
+    const isWeekend = i >= 5;
+    const card=document.createElement('div');card.className='day st-'+st+(dt.toDateString()===todayStr?' today':'')+(isWeekend?' is-weekend':'');card.dataset.date=dt.toISOString().slice(0,10);card.dataset.status=st;
+    card.innerHTML=`<div class="day-head"><div><b>${DAYS[i]}</b> <span>${fmtDate(dt)}</span>${isWeekend?' <span class="weekend-badge">Weekend</span>':''}</div><span class="day-total"></span></div>
     <div class="status-row" role="group" aria-label="Status ${DAYS[i]}">${STATUS_OK.map(k=>`<button type="button" class="st-btn${k===st?' on-'+k:''}" data-st="${k}" aria-pressed="${k===st}">${k==='lucru'?'💼 ':k==='concediu'?'🌿 ':k==='liber'?'☀️ ':'🏥 '}${STATUS[k]}</button>`).join('')}</div>
     <div class="time-wrap"${st!=='lucru'?' hidden':''}>
     <div class="grid3">
       <label>🕐 Început<input type="text" inputmode="none" readonly placeholder="--:--" class="in-s" aria-haspopup="dialog" value="${esc(v.s)}"></label>
       <label>⏸️ Pauză (min)<input type="number" class="in-p" min="0" max="600" step="5" inputmode="numeric" value="${esc(v.p)}" placeholder="30"></label>
       <label>🏁 Sfârșit<input type="text" inputmode="none" readonly placeholder="--:--" class="in-e" aria-haspopup="dialog" value="${esc(v.e)}"></label>
-    </div><div class="chips">${[0,15,30,45,60].map(x=>`<button type="button" class="chip" data-p="${x}" aria-pressed="${String(v.p||'')===String(x)}">${x}</button>`).join('')}</div>
+    </div>
+    <div class="chips-row" style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap">
+      <div class="chips">${[0,15,30,45,60].map(x=>`<button type="button" class="chip" data-p="${x}" aria-pressed="${String(v.p||'')===String(x)}">${x}</button>`).join('')}</div>
+      <div class="presets" style="display:flex;gap:4px">
+        <button type="button" class="btn small ghost btn-preset" data-s="08:00" data-e="16:30" data-p="30" title="Setează 08:00 - 16:30">08-16:30</button>
+        <button type="button" class="btn small ghost btn-preset" data-s="09:00" data-e="17:30" data-p="30" title="Setează 09:00 - 17:30">09-17:30</button>
+      </div>
+    </div>
+    <div style="margin-top:8px">
+      <input type="text" class="in-n" placeholder="📝 Note / Proiect (opțional)" value="${esc(v.n||'')}" maxlength="200" style="font-size:13px;padding:8px 10px">
+    </div>
     </div>`;
     daysEl.appendChild(card);
   }
@@ -262,6 +273,14 @@ function render(){
     inp.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();openClock(inp);}});
   });
   daysEl.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',ev=>{ev.preventDefault();const card=c.closest('.day');card.querySelector('.in-p').value=c.dataset.p;recalc();saveWeek();}));
+  daysEl.querySelectorAll('.btn-preset').forEach(bp=>bp.addEventListener('click',ev=>{
+    ev.preventDefault();
+    const card=bp.closest('.day');
+    card.querySelector('.in-s').value=bp.dataset.s;
+    card.querySelector('.in-e').value=bp.dataset.e;
+    card.querySelector('.in-p').value=bp.dataset.p;
+    recalc();saveWeek();
+  }));
   recalc();renderHistory();
 }
 function recalc(){
@@ -344,10 +363,146 @@ function mondayFromWeek(y,w){const jan4=new Date(y,0,4);const d=getMonday(jan4);
 $('#btn-prev')&&($('#btn-prev').onclick=()=>{monday.setDate(monday.getDate()-7);render();});
 $('#btn-next')&&($('#btn-next').onclick=()=>{monday.setDate(monday.getDate()+7);render();});
 $('#week-range')&&($('#week-range').onclick=()=>{const now=getMonday(new Date());if(weekKey(now)!==weekKey(monday)){monday=now;render();window.scrollTo({top:0,behavior:'smooth'});}});
+
+$('#btn-quick-fill') && ($('#btn-quick-fill').onclick = () => {
+  const cards = document.querySelectorAll('.day');
+  for (let i = 0; i < 5; i++) {
+    const card = cards[i];
+    if (!card) continue;
+    card.dataset.status = 'lucru';
+    card.classList.remove('st-lucru','st-concediu','st-liber','st-medical');
+    card.classList.add('st-lucru');
+    card.querySelectorAll('.st-btn').forEach(x => {
+      const on = x.dataset.st === 'lucru';
+      x.classList.remove('on-lucru','on-concediu','on-liber','on-medical');
+      if (on) x.classList.add('on-lucru');
+      x.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    const tw = card.querySelector('.time-wrap');
+    if (tw) tw.hidden = false;
+    card.querySelector('.in-s').value = '08:00';
+    card.querySelector('.in-e').value = '16:30';
+    card.querySelector('.in-p').value = '30';
+  }
+  recalc(); saveWeek();
+});
+
+$('#btn-edit-target') && ($('#btn-edit-target').onclick = () => {
+  const cur = getTarget();
+  const val = prompt('Introdu ținta săptămânală de ore (ex: 38 sau 40):', cur);
+  if (val !== null) {
+    const num = parseFloat(val.replace(',', '.'));
+    if (Number.isFinite(num) && num > 0 && num <= 80) {
+      setTarget(num);
+      recalc();
+    } else {
+      alert('Te rugăm să introduci un număr valid între 1 și 80.');
+    }
+  }
+});
+
+$('#btn-csv') && ($('#btn-csv').onclick = () => {
+  const m = new Date(monday);
+  let csv = 'Zi,Data,Status,Inceput,Pauza_min,Sfarsit,Ore,Note\n';
+  for (let i = 0; i < 7; i++) {
+    const card = document.querySelectorAll('.day')[i];
+    const raw = {
+      s: card.querySelector('.in-s').value,
+      p: card.querySelector('.in-p').value,
+      e: card.querySelector('.in-e').value,
+      t: card.dataset.status || 'lucru',
+      n: card.querySelector('.in-n')?.value || ''
+    };
+    const v = sanitizeDay(raw);
+    const st = normStatus(v.t);
+    const min = calcDay(v.s, v.p, v.e, st);
+    const dt = new Date(m); dt.setDate(dt.getDate() + i);
+    const dateStr = dt.toISOString().slice(0, 10);
+    const hoursStr = (min / 60).toFixed(2).replace('.', ',');
+    const noteEsc = `"${(v.n || '').replace(/"/g, '""')}"`;
+    csv += `"${DAYS[i]}","${dateStr}","${STATUS[st]}","${v.s}","${v.p}","${v.e}","${hoursStr}",${noteEsc}\n`;
+  }
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Pontaj_${weekKey(monday)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+$('#btn-monthly') && ($('#btn-monthly').onclick = () => {
+  const dlg = $('#dlg-monthly');
+  const cnt = $('#monthly-content');
+  if (!dlg || !cnt) return;
+
+  const idx = getIndex().filter(isWeekKey);
+  let totalMin = 0, workDays = 0, leaveDays = 0, medicalDays = 0, freeDays = 0;
+
+  idx.forEach(k => {
+    const d = loadWeek(k);
+    Object.values(d).forEach(raw => {
+      const v = sanitizeDay(raw);
+      const min = calcDay(v.s, v.p, v.e, v.t);
+      if (v.t === 'lucru' && min > 0) { totalMin += min; workDays++; }
+      else if (v.t === 'concediu') leaveDays++;
+      else if (v.t === 'medical') medicalDays++;
+      else if (v.t === 'liber') freeDays++;
+    });
+  });
+
+  const totalHours = (totalMin / 60).toFixed(2).replace('.', ',');
+  cnt.innerHTML = `
+    <div style="display:grid;gap:12px">
+      <p style="margin:0"><b>Istoric înregistrat:</b> ${idx.length} săptămâni salvate</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:var(--bg);padding:12px;border-radius:12px;border:1px solid var(--line)">
+          <div class="muted small">Total ore lucrate</div>
+          <div style="font-size:22px;font-weight:800;color:var(--acc);margin-top:4px">${totalHours} h</div>
+        </div>
+        <div style="background:var(--bg);padding:12px;border-radius:12px;border:1px solid var(--line)">
+          <div class="muted small">Zile lucrate</div>
+          <div style="font-size:22px;font-weight:800;color:var(--ok);margin-top:4px">${workDays} zile</div>
+        </div>
+        <div style="background:var(--bg);padding:12px;border-radius:12px;border:1px solid var(--line)">
+          <div class="muted small">Concediu / Liber</div>
+          <div style="font-size:18px;font-weight:700;margin-top:4px">🌿 ${leaveDays} • ☀️ ${freeDays}</div>
+        </div>
+        <div style="background:var(--bg);padding:12px;border-radius:12px;border:1px solid var(--line)">
+          <div class="muted small">Concediu Medical</div>
+          <div style="font-size:18px;font-weight:700;color:var(--err);margin-top:4px">🏥 ${medicalDays} zile</div>
+        </div>
+      </div>
+      <p class="muted small" style="margin-top:4px">Sinteza calculează toate datele pontate din contul tău.</p>
+    </div>
+  `;
+  if (typeof dlg.showModal === 'function') dlg.showModal();
+});
+
+$('#btn-close-monthly') && ($('#btn-close-monthly').onclick = () => {
+  const dlg = $('#dlg-monthly');
+  if (dlg && typeof dlg.close === 'function') dlg.close();
+});
+
 $('#btn-print')&&($('#btn-print').onclick=()=>{
   const m=new Date(monday);let rows='',tot=0;
-  for(let i=0;i<7;i++){const card=document.querySelectorAll('.day')[i];const raw={s:card.querySelector('.in-s').value,p:card.querySelector('.in-p').value,e:card.querySelector('.in-e').value,t:card.dataset.status||'lucru'};const v=sanitizeDay(raw);const st=normStatus(v.t);const s=st!=='lucru'?'—':(v.s||'—'),p=st!=='lucru'?'—':((v.p||'0')+' min'),e=st!=='lucru'?'—':(v.e||'—');const min=calcDay(v.s,v.p,v.e,st);tot+=min;const dt=new Date(m);dt.setDate(dt.getDate()+i);
-    rows+=`<tr><td>${esc(DAYS[i])} ${esc(fmtDate(dt))}</td><td>${esc(STATUS[st])}</td><td>${esc(s)}</td><td>${esc(p)}</td><td>${esc(e)}</td><td>${min>0?esc(roDec(min/60)+' ('+hm(min)+')'):'—'}</td></tr>`;}
+  for(let i=0;i<7;i++){
+    const card=document.querySelectorAll('.day')[i];
+    const raw={
+      s:card.querySelector('.in-s').value,
+      p:card.querySelector('.in-p').value,
+      e:card.querySelector('.in-e').value,
+      t:card.dataset.status||'lucru',
+      n:card.querySelector('.in-n')?.value||''
+    };
+    const v=sanitizeDay(raw);
+    const st=normStatus(v.t);
+    const s=st!=='lucru'?'—':(v.s||'—'),p=st!=='lucru'?'—':((v.p||'0')+' min'),e=st!=='lucru'?'—':(v.e||'—');
+    const min=calcDay(v.s,v.p,v.e,st);tot+=min;
+    const dt=new Date(m);dt.setDate(dt.getDate()+i);
+    const noteText=v.n?`<br><small style="color:#666">📝 ${esc(v.n)}</small>`:'';
+    rows+=`<tr><td>${esc(DAYS[i])} ${esc(fmtDate(dt))}${noteText}</td><td>${esc(STATUS[st])}</td><td>${esc(s)}</td><td>${esc(p)}</td><td>${esc(e)}</td><td>${min>0?esc(roDec(min/60)+' ('+hm(min)+')'):'—'}</td></tr>`;
+  }
   const email=currentUser&&currentUser.email?esc(currentUser.email):'';
   $('#print-area').innerHTML=`<h1>Pontaj ${esc(weekKey(monday))} — ${esc($('#week-range').textContent)}</h1>${email?`<p>Angajat: <b>${email}</b></p>`:''}<p>Total lucrat: <b>${esc(roDec(tot/60)+' ('+hm(tot)+')')}</b></p><table><tr><th>Zi</th><th>Status</th><th>Început</th><th>Pauză</th><th>Sfârșit</th><th>Total</th></tr>${rows}</table>`;
   window.print();

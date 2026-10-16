@@ -298,6 +298,21 @@ main{max-width:640px;margin:0 auto;padding:12px;display:grid;gap:12px}
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--acc) 30%, transparent) !important;
 }
 
+.day.is-weekend {
+  background: color-mix(in srgb, var(--bg2) 60%, var(--card)) !important;
+  opacity: 0.95;
+}
+
+.weekend-badge {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  padding: 2px 8px !important;
+  border-radius: 99px !important;
+  background: color-mix(in srgb, var(--acc) 15%, transparent) !important;
+  color: var(--acc) !important;
+  margin-left: 6px !important;
+}
+
 /* Status buttons - culori distincte */
 .st-btn {
   padding: 8px 14px !important;
