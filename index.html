@@ -83,14 +83,22 @@
             <div class="progress-fill" id="progress-fill"></div>
             <div class="progress-ot" id="progress-ot"></div>
           </div>
-          <div class="progress-info row wrap" style="justify-content:space-between;margin-top:4px">
-            <span class="muted small" id="progress-label">0 / 38 h</span>
+          <div class="progress-info row wrap" style="justify-content:space-between;align-items:center;margin-top:4px">
+            <div style="display:flex;align-items:center;gap:4px">
+              <span class="muted small" id="progress-label">0 / 38 h</span>
+              <button id="btn-edit-target" class="link small" style="padding:0 2px;font-size:12px;opacity:0.85" title="Schimbă ținta de ore">✏️</button>
+            </div>
             <span class="ot-badge" id="ot-badge" hidden>+0 h 🔥</span>
           </div>
         </div>
       </div>
-      <div class="total-actions" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-        <button id="btn-print" class="btn ghost small">📄 Export / PDF</button>
+      <div class="total-actions" style="display:flex;flex-direction:column;align-items:stretch;gap:6px">
+        <button id="btn-quick-fill" class="btn ghost small" style="white-space:nowrap">⚡ Completează Luni–Vi</button>
+        <button id="btn-monthly" class="btn ghost small" style="white-space:nowrap">📅 Sinteză Lunară</button>
+        <div style="display:flex;gap:4px">
+          <button id="btn-csv" class="btn ghost small">📊 CSV</button>
+          <button id="btn-print" class="btn ghost small">📄 PDF</button>
+        </div>
       </div>
     </div>
 
@@ -105,6 +113,14 @@
     <p class="muted small center">☁️ Datele sunt legate de contul tău • <span id="app-ver">v39</span></p>
   </div>
 </main>
+
+<dialog id="dlg-monthly" aria-label="Sinteză Lunară" style="border:1px solid var(--line);border-radius:20px;background:var(--bg2);color:var(--text);padding:20px;width:min(94vw,480px)">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <h2 style="margin:0">📅 Sinteză Lunară</h2>
+    <button id="btn-close-monthly" class="btn small ghost" style="flex:none;padding:4px 10px">✕</button>
+  </div>
+  <div id="monthly-content"></div>
+</dialog>
 
 <dialog id="dlg-clock" aria-label="Alege ora">
   <div class="ck-disp"><button id="ck-h" class="ck-num">08</button><span>:</span><button id="ck-m" class="ck-num">00</button></div>
