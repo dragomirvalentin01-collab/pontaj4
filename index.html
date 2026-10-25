@@ -2,7 +2,10 @@
 <html lang="ro" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <title>Pontaj Săptămânal</title>
     <meta
       name="description"
@@ -31,13 +34,19 @@
       </div>
       <div class="top-actions">
         <div id="user-bar" class="user-bar" hidden>
-          <span id="user-avatar" class="avatar">?</span><span id="user-email"></span
+          <span id="user-avatar" class="avatar">?</span
+          ><span id="user-email"></span
           ><button id="btn-logout" class="btn small ghost">Ieșire</button>
         </div>
         <button id="btn-install" class="btn ghost" hidden>📲 Instalează</button>
         <!-- selector teme -->
         <div class="theme-picker">
-          <button id="btn-theme-pick" class="btn ghost" title="Alege tema" aria-label="Alege tema">
+          <button
+            id="btn-theme-pick"
+            class="btn ghost"
+            title="Alege tema"
+            aria-label="Alege tema"
+          >
             🎨
           </button>
           <div class="theme-dropdown" id="theme-dropdown" hidden>
@@ -58,8 +67,8 @@
       <section id="auth-card" class="card auth-card" hidden>
         <h2>🔐 Conectează-te ca să nu pierzi datele</h2>
         <p class="muted small">
-          Datele se salvează în contul tău Google și se sincronizează pe orice telefon. Dacă ștergi
-          cache-ul, revin după login.
+          Datele se salvează în contul tău Google și se sincronizează pe orice
+          telefon. Dacă ștergi cache-ul, revin după login.
         </p>
         <div id="auth-error" class="error-box"></div>
         <button id="btn-google" type="button" class="btn google-btn">
@@ -85,8 +94,12 @@
         </button>
         <div class="or-sep"><span>sau cu email</span></div>
         <div class="auth-tabs">
-          <button id="tab-signin" class="auth-tab on" type="button">Am cont</button>
-          <button id="tab-signup" class="auth-tab" type="button">Cont nou</button>
+          <button id="tab-signin" class="auth-tab on" type="button">
+            Am cont
+          </button>
+          <button id="tab-signup" class="auth-tab" type="button">
+            Cont nou
+          </button>
         </div>
         <form id="form-auth" class="auth-form">
           <label
@@ -105,19 +118,26 @@
               autocomplete="current-password"
               required
           /></label>
-          <button id="btn-auth" type="submit" class="btn primary full">Intră în cont</button>
+          <button id="btn-auth" type="submit" class="btn primary full">
+            Intră în cont
+          </button>
         </form>
         <p class="muted small center auth-note">
-          Prin login accepți sincronizarea datelor pontajului în cloud (doar tu le vezi).
+          Prin login accepți sincronizarea datelor pontajului în cloud (doar tu
+          le vezi).
         </p>
       </section>
 
-      <div id="auth-loading" class="card center"><p class="muted">Se verifică sesiunea…</p></div>
+      <div id="auth-loading" class="card center">
+        <p class="muted">Se verifică sesiunea…</p>
+      </div>
 
       <!-- App content - vizibil doar când ești logat -->
       <div id="app-content" hidden>
         <section class="week-nav card">
-          <button id="btn-prev" class="btn" aria-label="Săptămâna anterioară">‹</button>
+          <button id="btn-prev" class="btn" aria-label="Săptămâna anterioară">
+            ‹
+          </button>
           <div class="week-nav-mid">
             <strong id="week-range">–</strong>
             <div class="week-nav-sub">
@@ -125,7 +145,9 @@
               ><span id="cloud-dot" class="cloud-dot" hidden>●</span>
             </div>
           </div>
-          <button id="btn-next" class="btn" aria-label="Săptămâna următoare">›</button>
+          <button id="btn-next" class="btn" aria-label="Săptămâna următoare">
+            ›
+          </button>
         </section>
 
         <div class="card highlight">
@@ -144,7 +166,11 @@
               </div>
               <div
                 class="progress-info row wrap"
-                style="justify-content: space-between; align-items: center; margin-top: 4px"
+                style="
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-top: 4px;
+                "
               >
                 <div style="display: flex; align-items: center; gap: 4px">
                   <span class="muted small" id="progress-label">0 / 38 h</span>
@@ -163,12 +189,18 @@
           </div>
           <div
             class="total-actions"
-            style="display: flex; flex-direction: column; align-items: stretch; gap: 6px"
+            style="
+              display: flex;
+              flex-direction: column;
+              align-items: stretch;
+              gap: 6px;
+            "
           >
-            <button id="btn-quick-fill" class="btn ghost small" style="white-space: nowrap">
-              ⚡ Completează Luni–Vi
-            </button>
-            <button id="btn-monthly" class="btn ghost small" style="white-space: nowrap">
+            <button
+              id="btn-monthly"
+              class="btn ghost small"
+              style="white-space: nowrap"
+            >
               📅 Sinteză Lunară
             </button>
             <div style="display: flex; gap: 4px">
@@ -183,7 +215,8 @@
         <section class="card">
           <h2>🗂️ Istoric săptămâni</h2>
           <p class="muted small">
-            Sincronizare automată în cloud. Atinge o săptămână pentru a o deschide.
+            Sincronizare automată în cloud. Atinge o săptămână pentru a o
+            deschide.
           </p>
           <ul id="history" class="history"></ul>
         </section>
@@ -252,15 +285,19 @@
     <div id="print-area"></div>
     <div id="sw-toast" class="sw-toast" hidden>
       <span>Versiune nouă disponibilă.</span
-      ><button id="sw-reload" class="btn small primary" type="button">Reîncarcă</button>
+      ><button id="sw-reload" class="btn small primary" type="button">
+        Reîncarcă
+      </button>
     </div>
     <div id="save-toast" class="save-toast" hidden>✓ Salvat în cloud</div>
 
     <script type="module" src="app.js?v=39"></script>
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () =>
-          navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {}),
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () =>
+          navigator.serviceWorker
+            .register("./sw.js", { scope: "./" })
+            .catch(() => {}),
         );
       }
     </script>
