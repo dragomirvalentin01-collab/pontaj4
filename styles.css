@@ -600,11 +600,37 @@ main{max-width:640px;margin:0 auto;padding:12px;display:grid;gap:12px}
   border: 1px solid color-mix(in srgb, var(--line) 40%, transparent) !important;
 }
 
-/* Google button */
-.google-btn {
+/* Google & Facebook buttons */
+.google-btn, .facebook-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  font-weight: 700;
+  margin-bottom: 8px;
+  transition: transform .12s, box-shadow .2s;
   padding: 12px !important;
   border-radius: 12px !important;
   font-size: 14px !important;
+}
+
+.facebook-btn {
+  background: #1877F2;
+  color: #ffffff;
+  border: none;
+}
+
+.facebook-btn svg {
+  fill: #ffffff;
+}
+
+.facebook-btn:active {
+  transform: scale(.98);
+}
+
+.facebook-btn:disabled {
+  opacity: .7;
 }
 
 /* Dialog (clock picker) */

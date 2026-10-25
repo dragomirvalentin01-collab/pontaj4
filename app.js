@@ -5,19 +5,6 @@ const SUPABASE_URL = 'https://nkqncfxmarlcwvzqzzbl.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rcW5jZnhtYXJsY3d2enF6emJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyNjU5MTgsImV4cCI6MjEwNTg0MTkxOH0.leTOr62c4uuKy1R8FbeYTvtCMm6927tsFMzXdl7qbiI';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-function wipePkceSlots(){
-  for(const st of [localStorage, sessionStorage]){
-    try{
-      const dead=[];
-      for(let i=0;i<st.length;i++){const k=st.key(i);if(k&&k.indexOf('code-verifier')!==-1)dead.push(k);}
-      dead.forEach(k=>st.removeItem(k));
-    }catch{}
-  }
-}
-
-try{
-  if(!new URL(window.location.href).searchParams.get('code')) wipePkceSlots();
-}catch{}
 
 const DAYS=['Luni','Marți','Miercuri','Joi','Vineri','Sâmbătă','Duminică'];
 const STATUS={lucru:'Lucru',concediu:'Concediu',liber:'Liber',medical:'Medical'};
@@ -720,7 +707,6 @@ $('#form-auth')&&$('#form-auth').addEventListener('submit', async (e)=>{
 
 
 $('#btn-google')&&$('#btn-google').addEventListener('click', async ()=>{
-  wipePkceSlots();
   setAuthError('');
   const btn=$('#btn-google'); if(btn) btn.disabled=true;
   try{
@@ -728,6 +714,18 @@ $('#btn-google')&&$('#btn-google').addEventListener('click', async ()=>{
     if(error) throw error;
   }catch(err){
     setAuthError(err.message||'Google login indisponibil. Activează providerul Google în Supabase Dashboard → Authentication → Providers.');
+    if(btn) btn.disabled=false;
+  }
+});
+
+$('#btn-facebook')&&$('#btn-facebook').addEventListener('click', async ()=>{
+  setAuthError('');
+  const btn=$('#btn-facebook'); if(btn) btn.disabled=true;
+  try{
+    const { error } = await supabase.auth.signInWithOAuth({ provider:'facebook', options:{ redirectTo: window.location.origin + window.location.pathname } });
+    if(error) throw error;
+  }catch(err){
+    setAuthError(err.message||'Facebook login indisponibil. Activează providerul Facebook în Supabase Dashboard → Authentication → Providers.');
     if(btn) btn.disabled=false;
   }
 });
@@ -762,10 +760,16 @@ async function handleOAuthCode(){
   if(code){
     try{
       const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
-      if(error) console.warn('exchangeCode error', error);
+      if(error){
+        console.warn('exchangeCode error', error);
+        setAuthError(error.message || 'Autentificarea Google a eșuat.');
+      }
       url.searchParams.delete('code');
       window.history.replaceState({}, document.title, url.pathname + url.search + window.location.hash);
-    }catch(e){ console.warn('exchange failed', e); }
+    }catch(e){
+      console.warn('exchange failed', e);
+      setAuthError(e.message || 'Autentificarea Google a eșuat.');
+    }
   }
 }
 async function initAuth(){
