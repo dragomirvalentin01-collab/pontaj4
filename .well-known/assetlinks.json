@@ -1,9 +1,0 @@
-[{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "io.github.dragomirvalentin01_collab.twa",
-    "sha256_cert_fingerprints": ["32:6F:D9:C1:42:EA:4B:25:71:3B:B3:FE:32:C1:23:23:BB:6E:A5:90:61:85:D8:FA:CF:95:98:05:28:EA:97:19"]
-  }
-}]
-```[span_1](start_span)[span_1](end_span)
