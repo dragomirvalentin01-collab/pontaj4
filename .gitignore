@@ -2,3 +2,4 @@
 .env*
 supabase/.temp
 *.log
+node_modules/

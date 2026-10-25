@@ -2,7 +2,8 @@
 import { createClient } from './vendor/supabase.esm.js';
 
 const SUPABASE_URL = 'https://nkqncfxmarlcwvzqzzbl.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rcW5jZnhtYXJsY3d2enF6emJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyNjU5MTgsImV4cCI6MjEwNTg0MTkxOH0.leTOr62c4uuKy1R8FbeYTvtCMm6927tsFMzXdl7qbiI';
+const SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rcW5jZnhtYXJsY3d2enF6emJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyNjU5MTgsImV4cCI6MjEwNTg0MTkxOH0.leTOr62c4uuKy1R8FbeYTvtCMm6927tsFMzXdl7qbiI';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const DAYS = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'];
@@ -16,7 +17,7 @@ function normStatus(t) {
 let monday = getMonday(new Date());
 let deferredPrompt = null;
 
-const $ = s => document.querySelector(s);
+const $ = (s) => document.querySelector(s);
 const daysEl = $('#days');
 const histEl = $('#history');
 
@@ -50,7 +51,7 @@ function legacyWeekKey(dt) {
   const m = getMonday(dt);
   const y = m.getFullYear();
   const onejan = new Date(y, 0, 1);
-  const w = Math.ceil((((m - onejan) / 864e5) + onejan.getDay() + 1) / 7);
+  const w = Math.ceil(((m - onejan) / 864e5 + onejan.getDay() + 1) / 7);
   return `${y}-W${String(w).padStart(2, '0')}`;
 }
 
@@ -63,9 +64,17 @@ function roDec(h) {
 }
 
 function esc(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
+  return String(s == null ? '' : s).replace(
+    /[&<>"']/g,
+    (c) =>
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      })[c],
+  );
 }
 
 function isWeekKey(k) {
@@ -100,7 +109,8 @@ function sanitizeDay(v) {
 
 function calcDay(s, p, e, t) {
   if (t && t !== 'lucru') return 0;
-  const a = toMin(s), b = toMin(e);
+  const a = toMin(s),
+    b = toMin(e);
   if (a == null || b == null) return 0;
   let d = b - a;
   if (d < 0) d += 24 * 60;
@@ -149,7 +159,7 @@ function migrateLegacyScope() {
 
   if (legacy.length) {
     const scope = lsScope();
-    legacy.forEach(k => {
+    legacy.forEach((k) => {
       const wk = k.slice(7);
       localStorage.setItem(scope + wk, localStorage.getItem(k));
       localStorage.removeItem(k);
@@ -175,7 +185,9 @@ let histT = null;
 function scheduleHistory() {
   clearTimeout(histT);
   histT = setTimeout(() => {
-    try { renderHistory(); } catch {}
+    try {
+      renderHistory();
+    } catch {}
   }, 300);
 }
 
@@ -188,7 +200,7 @@ function saveWeek() {
       p: el.querySelector('.in-p').value,
       e: el.querySelector('.in-e').value,
       t: el.dataset.status || 'lucru',
-      n: el.querySelector('.in-n')?.value || ''
+      n: el.querySelector('.in-n')?.value || '',
     };
     data[i] = sanitizeDay(raw);
   });
@@ -216,7 +228,7 @@ function showSaveToast() {
   const el = $('#save-toast');
   if (!el) return;
   el.hidden = false;
-  setTimeout(() => el.hidden = true, 2000);
+  setTimeout(() => (el.hidden = true), 2000);
 }
 
 function setCloudDot(state, msg) {
@@ -250,13 +262,19 @@ function scheduleCloudPush(k) {
 async function cloudPushWeek(k) {
   if (!currentUser) return;
   const data = loadWeek(k);
-  const hasData = Object.values(data).some(v => v.s || v.p || v.e || (v.t && v.t !== 'lucru'));
+  const hasData = Object.values(data).some((v) => v.s || v.p || v.e || (v.t && v.t !== 'lucru'));
   try {
     if (!hasData) {
-      const { error } = await supabase.from('pontaj_weeks').delete().eq('user_id', currentUser.id).eq('week_key', k);
+      const { error } = await supabase
+        .from('pontaj_weeks')
+        .delete()
+        .eq('user_id', currentUser.id)
+        .eq('week_key', k);
       if (error) throw error;
     } else {
-      const { error } = await supabase.from('pontaj_weeks').upsert({ user_id: currentUser.id, week_key: k, data }, { onConflict: 'user_id,week_key' });
+      const { error } = await supabase
+        .from('pontaj_weeks')
+        .upsert({ user_id: currentUser.id, week_key: k, data }, { onConflict: 'user_id,week_key' });
       if (error) throw error;
     }
     setCloudDot('ok');
@@ -270,7 +288,11 @@ async function cloudPushWeek(k) {
 async function cloudDeleteWeek(k) {
   if (!currentUser) return;
   try {
-    const { error } = await supabase.from('pontaj_weeks').delete().eq('user_id', currentUser.id).eq('week_key', k);
+    const { error } = await supabase
+      .from('pontaj_weeks')
+      .delete()
+      .eq('user_id', currentUser.id)
+      .eq('week_key', k);
     if (error) throw error;
     setCloudDot('ok');
   } catch (e) {
@@ -284,17 +306,23 @@ async function cloudPull() {
   isCloudPulling = true;
   setCloudDot('sync');
   try {
-    const { data, error } = await supabase.from('pontaj_weeks').select('week_key,data,updated_at').order('week_key', { ascending: false }).limit(52);
+    const { data, error } = await supabase
+      .from('pontaj_weeks')
+      .select('week_key,data,updated_at')
+      .order('week_key', { ascending: false })
+      .limit(52);
     if (error) throw error;
     const idx = [];
     const pushLater = [];
-    (data || []).forEach(row => {
+    (data || []).forEach((row) => {
       if (!isWeekKey(row.week_key)) return;
       const k = row.week_key;
       const cloudTs = row.updated_at ? Date.parse(row.updated_at) : 0;
       const localTs = Number(localStorage.getItem(kTs(k)) || 0);
       const local = loadWeek(k);
-      const localHas = Object.values(local).some(v => v && (v.s || v.p || v.e || (v.t && v.t !== 'lucru')));
+      const localHas = Object.values(local).some(
+        (v) => v && (v.s || v.p || v.e || (v.t && v.t !== 'lucru')),
+      );
       if (localHas && localTs > cloudTs) {
         idx.push(k);
         pushLater.push(k);
@@ -302,7 +330,7 @@ async function cloudPull() {
       }
       try {
         const clean = {};
-        Object.keys(row.data || {}).forEach(di => {
+        Object.keys(row.data || {}).forEach((di) => {
           if (!/^[0-6]$/.test(di)) return;
           clean[di] = sanitizeDay(row.data[di]);
         });
@@ -311,12 +339,14 @@ async function cloudPull() {
         idx.push(k);
       } catch {}
     });
-    pushLater.forEach(k => cloudPushWeek(k));
+    pushLater.forEach((k) => cloudPushWeek(k));
     const localIdx = getIndex();
-    localIdx.forEach(k => {
+    localIdx.forEach((k) => {
       if (!idx.includes(k) && isWeekKey(k)) {
         const localData = loadWeek(k);
-        const hasData = Object.values(localData).some(v => v.s || v.p || v.e || (v.t && v.t !== 'lucru'));
+        const hasData = Object.values(localData).some(
+          (v) => v.s || v.p || v.e || (v.t && v.t !== 'lucru'),
+        );
         if (hasData && !idx.includes(k)) {
           cloudPushWeek(k);
           idx.push(k);
@@ -380,7 +410,11 @@ function render() {
     const st = normStatus(v.t);
     const isWeekend = i >= 5;
     const card = document.createElement('div');
-    card.className = 'day st-' + st + (dt.toDateString() === todayStr ? ' today' : '') + (isWeekend ? ' is-weekend' : '');
+    card.className =
+      'day st-' +
+      st +
+      (dt.toDateString() === todayStr ? ' today' : '') +
+      (isWeekend ? ' is-weekend' : '');
     card.dataset.date = dt.toISOString().slice(0, 10);
     card.dataset.status = st;
     card.innerHTML = `
@@ -389,7 +423,7 @@ function render() {
         <span class="day-total"></span>
       </div>
       <div class="status-row" role="group" aria-label="Status ${DAYS[i]}">
-        ${STATUS_OK.map(k => `<button type="button" class="st-btn${k === st ? ' on-' + k : ''}" data-st="${k}" aria-pressed="${k === st}">${k === 'lucru' ? '💼 ' : k === 'concediu' ? '🌿 ' : k === 'liber' ? '☀️ ' : '🏥 '}${STATUS[k]}</button>`).join('')}
+        ${STATUS_OK.map((k) => `<button type="button" class="st-btn${k === st ? ' on-' + k : ''}" data-st="${k}" aria-pressed="${k === st}">${k === 'lucru' ? '💼 ' : k === 'concediu' ? '🌿 ' : k === 'liber' ? '☀️ ' : '🏥 '}${STATUS[k]}</button>`).join('')}
       </div>
       <div class="time-wrap"${st !== 'lucru' ? ' hidden' : ''}>
         <div class="grid3">
@@ -398,7 +432,7 @@ function render() {
           <label>🏁 Sfârșit<input type="text" inputmode="none" readonly placeholder="--:--" class="in-e" aria-haspopup="dialog" value="${esc(v.e)}"></label>
         </div>
         <div class="chips-row" style="display:flex;justify-space-between;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap">
-          <div class="chips">${[0, 15, 30, 45, 60].map(x => `<button type="button" class="chip" data-p="${x}" aria-pressed="${String(v.p || '') === String(x)}">${x}</button>`).join('')}</div>
+          <div class="chips">${[0, 15, 30, 45, 60].map((x) => `<button type="button" class="chip" data-p="${x}" aria-pressed="${String(v.p || '') === String(x)}">${x}</button>`).join('')}</div>
           <div class="presets" style="display:flex;gap:4px">
             <button type="button" class="btn small ghost btn-preset" data-s="08:00" data-e="16:30" data-p="30" title="Setează 08:00 - 16:30">08-16:30</button>
             <button type="button" class="btn small ghost btn-preset" data-s="09:00" data-e="17:30" data-p="30" title="Setează 09:00 - 17:30">09-17:30</button>
@@ -412,33 +446,37 @@ function render() {
     daysEl.appendChild(card);
   }
 
-  daysEl.querySelectorAll('.st-btn').forEach(b => b.addEventListener('click', ev => {
-    ev.preventDefault();
-    const card = b.closest('.day');
-    const st = b.dataset.st;
-    card.dataset.status = st;
-    card.classList.remove('st-lucru', 'st-concediu', 'st-liber', 'st-medical');
-    card.classList.add('st-' + st);
-    card.querySelectorAll('.st-btn').forEach(x => {
-      const on = x.dataset.st === st;
-      x.classList.remove('on-lucru', 'on-concediu', 'on-liber', 'on-medical');
-      if (on) x.classList.add('on-' + st);
-      x.setAttribute('aria-pressed', on ? 'true' : 'false');
-    });
-    const tw = card.querySelector('.time-wrap');
-    if (tw) tw.hidden = st !== 'lucru';
-    recalc();
-    saveWeek();
-  }));
+  daysEl.querySelectorAll('.st-btn').forEach((b) =>
+    b.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      const card = b.closest('.day');
+      const st = b.dataset.st;
+      card.dataset.status = st;
+      card.classList.remove('st-lucru', 'st-concediu', 'st-liber', 'st-medical');
+      card.classList.add('st-' + st);
+      card.querySelectorAll('.st-btn').forEach((x) => {
+        const on = x.dataset.st === st;
+        x.classList.remove('on-lucru', 'on-concediu', 'on-liber', 'on-medical');
+        if (on) x.classList.add('on-' + st);
+        x.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      const tw = card.querySelector('.time-wrap');
+      if (tw) tw.hidden = st !== 'lucru';
+      recalc();
+      saveWeek();
+    }),
+  );
 
-  daysEl.querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => {
-    recalc();
-    saveWeek();
-  }));
+  daysEl.querySelectorAll('input').forEach((inp) =>
+    inp.addEventListener('input', () => {
+      recalc();
+      saveWeek();
+    }),
+  );
 
-  daysEl.querySelectorAll('.in-s,.in-e').forEach(inp => {
+  daysEl.querySelectorAll('.in-s,.in-e').forEach((inp) => {
     inp.addEventListener('click', () => openClock(inp));
-    inp.addEventListener('keydown', ev => {
+    inp.addEventListener('keydown', (ev) => {
       if (ev.key === 'Enter' || ev.key === ' ') {
         ev.preventDefault();
         openClock(inp);
@@ -446,31 +484,36 @@ function render() {
     });
   });
 
-  daysEl.querySelectorAll('.chip').forEach(c => c.addEventListener('click', ev => {
-    ev.preventDefault();
-    const card = c.closest('.day');
-    card.querySelector('.in-p').value = c.dataset.p;
-    recalc();
-    saveWeek();
-  }));
+  daysEl.querySelectorAll('.chip').forEach((c) =>
+    c.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      const card = c.closest('.day');
+      card.querySelector('.in-p').value = c.dataset.p;
+      recalc();
+      saveWeek();
+    }),
+  );
 
-  daysEl.querySelectorAll('.btn-preset').forEach(bp => bp.addEventListener('click', ev => {
-    ev.preventDefault();
-    const card = bp.closest('.day');
-    card.querySelector('.in-s').value = bp.dataset.s;
-    card.querySelector('.in-e').value = bp.dataset.e;
-    card.querySelector('.in-p').value = bp.dataset.p;
-    recalc();
-    saveWeek();
-  }));
+  daysEl.querySelectorAll('.btn-preset').forEach((bp) =>
+    bp.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      const card = bp.closest('.day');
+      card.querySelector('.in-s').value = bp.dataset.s;
+      card.querySelector('.in-e').value = bp.dataset.e;
+      card.querySelector('.in-p').value = bp.dataset.p;
+      recalc();
+      saveWeek();
+    }),
+  );
 
   recalc();
   renderHistory();
 }
 
 function recalc() {
-  let total = 0, days = 0;
-  document.querySelectorAll('.day').forEach(card => {
+  let total = 0,
+    days = 0;
+  document.querySelectorAll('.day').forEach((card) => {
     const st = normStatus(card.dataset.status);
     const s = card.querySelector('.in-s').value;
     const p = card.querySelector('.in-p').value;
@@ -485,7 +528,7 @@ function recalc() {
     } else {
       out.textContent = min > 0 ? `${roDec(min / 60)} (${hm(min)})` : '—';
     }
-    card.querySelectorAll('.chip').forEach(c => {
+    card.querySelectorAll('.chip').forEach((c) => {
       const on = String(p || '') === c.dataset.p;
       c.classList.toggle('on', on);
       c.setAttribute('aria-pressed', on ? 'true' : 'false');
@@ -524,13 +567,13 @@ function updateProgress(totalMin) {
   const inTarget = Math.min(totalMin, targetMin);
   const over = Math.max(0, totalMin - targetMin);
 
-  fill.style.width = (inTarget / scale * 100) + '%';
+  fill.style.width = (inTarget / scale) * 100 + '%';
   fill.classList.toggle('complete', totalMin >= targetMin && over <= 0);
   fill.classList.toggle('over', over > 0);
 
   const ot = $('#progress-ot');
   if (ot) {
-    ot.style.width = (over / scale * 100) + '%';
+    ot.style.width = (over / scale) * 100 + '%';
     ot.classList.toggle('warn', over > targetMin * 0.2);
   }
 
@@ -554,10 +597,10 @@ function renderHistory() {
   if (!histEl) return;
   const idx = getIndex().filter(isWeekKey);
   histEl.innerHTML = idx.length ? '' : '<li class="muted">Nicio săptămână salvată încă.</li>';
-  idx.slice(0, 12).forEach(k => {
+  idx.slice(0, 12).forEach((k) => {
     let tot = 0;
     const d = loadWeek(k);
-    Object.values(d).forEach(raw => {
+    Object.values(d).forEach((raw) => {
       const v = sanitizeDay(raw);
       tot += calcDay(v.s, v.p, v.e, v.t);
     });
@@ -589,7 +632,7 @@ function renderHistory() {
       if (!confirm('Ștergi ' + k + '?')) return;
       localStorage.removeItem(kWeek(k));
       localStorage.removeItem(kTs(k));
-      localStorage.setItem(kIndex(), JSON.stringify(getIndex().filter(x => x !== k)));
+      localStorage.setItem(kIndex(), JSON.stringify(getIndex().filter((x) => x !== k)));
       await cloudDeleteWeek(k);
       renderHistory();
       recalc();
@@ -611,116 +654,129 @@ function mondayFromWeek(y, w) {
 }
 
 // Main Actions & Handlers
-$('#btn-prev') && ($('#btn-prev').onclick = () => {
-  monday.setDate(monday.getDate() - 7);
-  render();
-});
-
-$('#btn-next') && ($('#btn-next').onclick = () => {
-  monday.setDate(monday.getDate() + 7);
-  render();
-});
-
-$('#week-range') && ($('#week-range').onclick = () => {
-  const now = getMonday(new Date());
-  if (weekKey(now) !== weekKey(monday)) {
-    monday = now;
+$('#btn-prev') &&
+  ($('#btn-prev').onclick = () => {
+    monday.setDate(monday.getDate() - 7);
     render();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-});
-
-$('#btn-quick-fill') && ($('#btn-quick-fill').onclick = () => {
-  const cards = document.querySelectorAll('.day');
-  for (let i = 0; i < 5; i++) {
-    const card = cards[i];
-    if (!card) continue;
-    card.dataset.status = 'lucru';
-    card.classList.remove('st-lucru', 'st-concediu', 'st-liber', 'st-medical');
-    card.classList.add('st-lucru');
-    card.querySelectorAll('.st-btn').forEach(x => {
-      const on = x.dataset.st === 'lucru';
-      x.classList.remove('on-lucru', 'on-concediu', 'on-liber', 'on-medical');
-      if (on) x.classList.add('on-lucru');
-      x.setAttribute('aria-pressed', on ? 'true' : 'false');
-    });
-    const tw = card.querySelector('.time-wrap');
-    if (tw) tw.hidden = false;
-    card.querySelector('.in-s').value = '08:00';
-    card.querySelector('.in-e').value = '16:30';
-    card.querySelector('.in-p').value = '30';
-  }
-  recalc();
-  saveWeek();
-});
-
-$('#btn-edit-target') && ($('#btn-edit-target').onclick = () => {
-  const cur = getTarget();
-  const val = prompt('Introdu ținta săptămânală de ore (ex: 38 sau 40):', cur);
-  if (val !== null) {
-    const num = parseFloat(val.replace(',', '.'));
-    if (Number.isFinite(num) && num > 0 && num <= 80) {
-      setTarget(num);
-      recalc();
-    } else {
-      alert('Te rugăm să introduci un număr valid între 1 și 80.');
-    }
-  }
-});
-
-$('#btn-csv') && ($('#btn-csv').onclick = () => {
-  const m = new Date(monday);
-  let csv = 'Zi,Data,Status,Inceput,Pauza_min,Sfarsit,Ore,Note\n';
-  for (let i = 0; i < 7; i++) {
-    const card = document.querySelectorAll('.day')[i];
-    const raw = {
-      s: card.querySelector('.in-s').value,
-      p: card.querySelector('.in-p').value,
-      e: card.querySelector('.in-e').value,
-      t: card.dataset.status || 'lucru',
-      n: card.querySelector('.in-n')?.value || ''
-    };
-    const v = sanitizeDay(raw);
-    const st = normStatus(v.t);
-    const min = calcDay(v.s, v.p, v.e, st);
-    const dt = new Date(m);
-    dt.setDate(dt.getDate() + i);
-    const dateStr = dt.toISOString().slice(0, 10);
-    const hoursStr = (min / 60).toFixed(2).replace('.', ',');
-    const noteEsc = `"${(v.n || '').replace(/"/g, '""')}"`;
-    csv += `"${DAYS[i]}","${dateStr}","${STATUS[st]}","${v.s}","${v.p}","${v.e}","${hoursStr}",${noteEsc}\n`;
-  }
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `Pontaj_${weekKey(monday)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-});
-
-$('#btn-monthly') && ($('#btn-monthly').onclick = () => {
-  const dlg = $('#dlg-monthly');
-  const cnt = $('#monthly-content');
-  if (!dlg || !cnt) return;
-
-  const idx = getIndex().filter(isWeekKey);
-  let totalMin = 0, workDays = 0, leaveDays = 0, medicalDays = 0, freeDays = 0;
-
-  idx.forEach(k => {
-    const d = loadWeek(k);
-    Object.values(d).forEach(raw => {
-      const v = sanitizeDay(raw);
-      const min = calcDay(v.s, v.p, v.e, v.t);
-      if (v.t === 'lucru' && min > 0) { totalMin += min; workDays++; }
-      else if (v.t === 'concediu') leaveDays++;
-      else if (v.t === 'medical') medicalDays++;
-      else if (v.t === 'liber') freeDays++;
-    });
   });
 
-  const totalHours = (totalMin / 60).toFixed(2).replace('.', ',');
-  cnt.innerHTML = `
+$('#btn-next') &&
+  ($('#btn-next').onclick = () => {
+    monday.setDate(monday.getDate() + 7);
+    render();
+  });
+
+$('#week-range') &&
+  ($('#week-range').onclick = () => {
+    const now = getMonday(new Date());
+    if (weekKey(now) !== weekKey(monday)) {
+      monday = now;
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  });
+
+$('#btn-quick-fill') &&
+  ($('#btn-quick-fill').onclick = () => {
+    const cards = document.querySelectorAll('.day');
+    for (let i = 0; i < 5; i++) {
+      const card = cards[i];
+      if (!card) continue;
+      card.dataset.status = 'lucru';
+      card.classList.remove('st-lucru', 'st-concediu', 'st-liber', 'st-medical');
+      card.classList.add('st-lucru');
+      card.querySelectorAll('.st-btn').forEach((x) => {
+        const on = x.dataset.st === 'lucru';
+        x.classList.remove('on-lucru', 'on-concediu', 'on-liber', 'on-medical');
+        if (on) x.classList.add('on-lucru');
+        x.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      const tw = card.querySelector('.time-wrap');
+      if (tw) tw.hidden = false;
+      card.querySelector('.in-s').value = '08:00';
+      card.querySelector('.in-e').value = '16:30';
+      card.querySelector('.in-p').value = '30';
+    }
+    recalc();
+    saveWeek();
+  });
+
+$('#btn-edit-target') &&
+  ($('#btn-edit-target').onclick = () => {
+    const cur = getTarget();
+    const val = prompt('Introdu ținta săptămânală de ore (ex: 38 sau 40):', cur);
+    if (val !== null) {
+      const num = parseFloat(val.replace(',', '.'));
+      if (Number.isFinite(num) && num > 0 && num <= 80) {
+        setTarget(num);
+        recalc();
+      } else {
+        alert('Te rugăm să introduci un număr valid între 1 și 80.');
+      }
+    }
+  });
+
+$('#btn-csv') &&
+  ($('#btn-csv').onclick = () => {
+    const m = new Date(monday);
+    let csv = 'Zi,Data,Status,Inceput,Pauza_min,Sfarsit,Ore,Note\n';
+    for (let i = 0; i < 7; i++) {
+      const card = document.querySelectorAll('.day')[i];
+      const raw = {
+        s: card.querySelector('.in-s').value,
+        p: card.querySelector('.in-p').value,
+        e: card.querySelector('.in-e').value,
+        t: card.dataset.status || 'lucru',
+        n: card.querySelector('.in-n')?.value || '',
+      };
+      const v = sanitizeDay(raw);
+      const st = normStatus(v.t);
+      const min = calcDay(v.s, v.p, v.e, st);
+      const dt = new Date(m);
+      dt.setDate(dt.getDate() + i);
+      const dateStr = dt.toISOString().slice(0, 10);
+      const hoursStr = (min / 60).toFixed(2).replace('.', ',');
+      const noteEsc = `"${(v.n || '').replace(/"/g, '""')}"`;
+      csv += `"${DAYS[i]}","${dateStr}","${STATUS[st]}","${v.s}","${v.p}","${v.e}","${hoursStr}",${noteEsc}\n`;
+    }
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Pontaj_${weekKey(monday)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+$('#btn-monthly') &&
+  ($('#btn-monthly').onclick = () => {
+    const dlg = $('#dlg-monthly');
+    const cnt = $('#monthly-content');
+    if (!dlg || !cnt) return;
+
+    const idx = getIndex().filter(isWeekKey);
+    let totalMin = 0,
+      workDays = 0,
+      leaveDays = 0,
+      medicalDays = 0,
+      freeDays = 0;
+
+    idx.forEach((k) => {
+      const d = loadWeek(k);
+      Object.values(d).forEach((raw) => {
+        const v = sanitizeDay(raw);
+        const min = calcDay(v.s, v.p, v.e, v.t);
+        if (v.t === 'lucru' && min > 0) {
+          totalMin += min;
+          workDays++;
+        } else if (v.t === 'concediu') leaveDays++;
+        else if (v.t === 'medical') medicalDays++;
+        else if (v.t === 'liber') freeDays++;
+      });
+    });
+
+    const totalHours = (totalMin / 60).toFixed(2).replace('.', ',');
+    cnt.innerHTML = `
     <div style="display:grid;gap:12px">
       <p style="margin:0"><b>Istoric înregistrat:</b> ${idx.length} săptămâni salvate</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -744,42 +800,46 @@ $('#btn-monthly') && ($('#btn-monthly').onclick = () => {
       <p class="muted small" style="margin-top:4px">Sinteza calculează toate datele pontate din contul tău.</p>
     </div>
   `;
-  if (typeof dlg.showModal === 'function') dlg.showModal();
-});
+    if (typeof dlg.showModal === 'function') dlg.showModal();
+  });
 
-$('#btn-close-monthly') && ($('#btn-close-monthly').onclick = () => {
-  const dlg = $('#dlg-monthly');
-  if (dlg && typeof dlg.close === 'function') dlg.close();
-});
+$('#btn-close-monthly') &&
+  ($('#btn-close-monthly').onclick = () => {
+    const dlg = $('#dlg-monthly');
+    if (dlg && typeof dlg.close === 'function') dlg.close();
+  });
 
-$('#btn-print') && ($('#btn-print').onclick = () => {
-  const m = new Date(monday);
-  let rows = '', tot = 0;
-  for (let i = 0; i < 7; i++) {
-    const card = document.querySelectorAll('.day')[i];
-    const raw = {
-      s: card.querySelector('.in-s').value,
-      p: card.querySelector('.in-p').value,
-      e: card.querySelector('.in-e').value,
-      t: card.dataset.status || 'lucru',
-      n: card.querySelector('.in-n')?.value || ''
-    };
-    const v = sanitizeDay(raw);
-    const st = normStatus(v.t);
-    const s = st !== 'lucru' ? '—' : (v.s || '—');
-    const p = st !== 'lucru' ? '—' : ((v.p || '0') + ' min');
-    const e = st !== 'lucru' ? '—' : (v.e || '—');
-    const min = calcDay(v.s, v.p, v.e, st);
-    tot += min;
-    const dt = new Date(m);
-    dt.setDate(dt.getDate() + i);
-    const noteText = v.n ? `<br><small style="color:#666">📝 ${esc(v.n)}</small>` : '';
-    rows += `<tr><td>${esc(DAYS[i])} ${esc(fmtDate(dt))}${noteText}</td><td>${esc(STATUS[st])}</td><td>${esc(s)}</td><td>${esc(p)}</td><td>${esc(e)}</td><td>${min > 0 ? esc(roDec(min / 60) + ' (' + hm(min) + ')') : '—'}</td></tr>`;
-  }
-  const email = currentUser && currentUser.email ? esc(currentUser.email) : '';
-  $('#print-area').innerHTML = `<h1>Pontaj ${esc(weekKey(monday))} — ${esc($('#week-range').textContent)}</h1>${email ? `<p>Angajat: <b>${email}</b></p>` : ''}<p>Total lucrat: <b>${esc(roDec(tot / 60) + ' (' + hm(tot) + ')')}</b></p><table><tr><th>Zi</th><th>Status</th><th>Început</th><th>Pauză</th><th>Sfârșit</th><th>Total</th></tr>${rows}</table>`;
-  window.print();
-});
+$('#btn-print') &&
+  ($('#btn-print').onclick = () => {
+    const m = new Date(monday);
+    let rows = '',
+      tot = 0;
+    for (let i = 0; i < 7; i++) {
+      const card = document.querySelectorAll('.day')[i];
+      const raw = {
+        s: card.querySelector('.in-s').value,
+        p: card.querySelector('.in-p').value,
+        e: card.querySelector('.in-e').value,
+        t: card.dataset.status || 'lucru',
+        n: card.querySelector('.in-n')?.value || '',
+      };
+      const v = sanitizeDay(raw);
+      const st = normStatus(v.t);
+      const s = st !== 'lucru' ? '—' : v.s || '—';
+      const p = st !== 'lucru' ? '—' : (v.p || '0') + ' min';
+      const e = st !== 'lucru' ? '—' : v.e || '—';
+      const min = calcDay(v.s, v.p, v.e, st);
+      tot += min;
+      const dt = new Date(m);
+      dt.setDate(dt.getDate() + i);
+      const noteText = v.n ? `<br><small style="color:#666">📝 ${esc(v.n)}</small>` : '';
+      rows += `<tr><td>${esc(DAYS[i])} ${esc(fmtDate(dt))}${noteText}</td><td>${esc(STATUS[st])}</td><td>${esc(s)}</td><td>${esc(p)}</td><td>${esc(e)}</td><td>${min > 0 ? esc(roDec(min / 60) + ' (' + hm(min) + ')') : '—'}</td></tr>`;
+    }
+    const email = currentUser && currentUser.email ? esc(currentUser.email) : '';
+    $('#print-area').innerHTML =
+      `<h1>Pontaj ${esc(weekKey(monday))} — ${esc($('#week-range').textContent)}</h1>${email ? `<p>Angajat: <b>${email}</b></p>` : ''}<p>Total lucrat: <b>${esc(roDec(tot / 60) + ' (' + hm(tot) + ')')}</b></p><table><tr><th>Zi</th><th>Status</th><th>Început</th><th>Pauză</th><th>Sfârșit</th><th>Total</th></tr>${rows}</table>`;
+    window.print();
+  });
 
 // Theme picker
 const THEMES = ['dark', 'light', 'ocean', 'forest', 'berry', 'sunset', 'midnight'];
@@ -794,14 +854,19 @@ function setTheme(t) {
     const bg = style.getPropertyValue('--bg').trim();
     if (bg) mt.content = bg;
   }
-  document.querySelectorAll('.theme-opt').forEach(btn => {
+  document.querySelectorAll('.theme-opt').forEach((btn) => {
     const active = btn.dataset.theme === t;
     btn.classList.toggle('active', active);
     btn.setAttribute('aria-pressed', active ? 'true' : 'false');
   });
   const iconMap = {
-    dark: '🌙', light: '☀️', ocean: '🌊', forest: '🌲',
-    berry: '🍇', sunset: '🌅', midnight: '🖤'
+    dark: '🌙',
+    light: '☀️',
+    ocean: '🌊',
+    forest: '🌲',
+    berry: '🍇',
+    sunset: '🌅',
+    midnight: '🖤',
   };
   const main = $('#btn-theme-pick');
   if (main) main.textContent = iconMap[t] || '🎨';
@@ -811,42 +876,46 @@ function setTheme(t) {
   const pick = $('#btn-theme-pick');
   const dd = $('#theme-dropdown');
   if (pick && dd) {
-    pick.addEventListener('click', ev => {
+    pick.addEventListener('click', (ev) => {
       ev.stopPropagation();
       dd.hidden = !dd.hidden;
     });
   }
-  document.querySelectorAll('.theme-opt').forEach(btn => {
-    btn.addEventListener('click', ev => {
+  document.querySelectorAll('.theme-opt').forEach((btn) => {
+    btn.addEventListener('click', (ev) => {
       ev.stopPropagation();
       setTheme(btn.dataset.theme);
       if (dd) dd.hidden = true;
     });
   });
-  document.addEventListener('click', e => {
+  document.addEventListener('click', (e) => {
     if (dd && !dd.hidden && !e.target.closest('.theme-picker')) dd.hidden = true;
   });
-  document.addEventListener('keydown', e => {
+  document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && dd) dd.hidden = true;
   });
 })();
-setTheme(localStorage.getItem(K_THEME) || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'));
+setTheme(
+  localStorage.getItem(K_THEME) ||
+    (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'),
+);
 
 // PWA Install prompt
-window.addEventListener('beforeinstallprompt', e => {
+window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
   const b = $('#btn-install');
   if (b) b.hidden = false;
 });
 
-$('#btn-install') && ($('#btn-install').onclick = async () => {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  await deferredPrompt.userChoice;
-  deferredPrompt = null;
-  $('#btn-install').hidden = true;
-});
+$('#btn-install') &&
+  ($('#btn-install').onclick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    $('#btn-install').hidden = true;
+  });
 
 // Service Worker Update Check
 (function swUpdate() {
@@ -871,32 +940,47 @@ $('#btn-install') && ($('#btn-install').onclick = async () => {
       };
       try {
         const w = reg.waiting || reg.installing;
-        if (w) { try { w.postMessage('SKIP_WAITING'); } catch {} }
+        if (w) {
+          try {
+            w.postMessage('SKIP_WAITING');
+          } catch {}
+        }
       } catch {}
       setTimeout(force, 1500);
     };
   }
-  navigator.serviceWorker.getRegistration().then(reg => {
-    if (!reg) return;
-    if (reg.waiting) showToast(reg);
-    reg.addEventListener('updatefound', () => {
-      const nw = reg.installing;
-      if (!nw) return;
-      nw.addEventListener('statechange', () => {
-        if (nw.state === 'installed' && navigator.serviceWorker.controller) showToast(reg);
+  navigator.serviceWorker
+    .getRegistration()
+    .then((reg) => {
+      if (!reg) return;
+      if (reg.waiting) showToast(reg);
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) showToast(reg);
+        });
       });
-    });
-  }).catch(() => {});
+    })
+    .catch(() => {});
 })();
 
 // Analog Clock Picker
-let ckTarget = null, ckH = 8, ckM = 0, ckMode = 'h', ckReturnFocus = null;
-const ckPad = n => String(n).padStart(2, '0');
+let ckTarget = null,
+  ckH = 8,
+  ckM = 0,
+  ckMode = 'h',
+  ckReturnFocus = null;
+const ckPad = (n) => String(n).padStart(2, '0');
 
 function ckClose(returnFocus) {
-  try { $('#dlg-clock').close(); } catch {}
+  try {
+    $('#dlg-clock').close();
+  } catch {}
   if (returnFocus !== false && ckReturnFocus && document.contains(ckReturnFocus)) {
-    try { ckReturnFocus.focus(); } catch {}
+    try {
+      ckReturnFocus.focus();
+    } catch {}
   }
   ckReturnFocus = null;
 }
@@ -915,7 +999,9 @@ function openClock(inp) {
   const d = $('#dlg-clock');
   if (d && typeof d.showModal === 'function') {
     d.showModal();
-    try { $('#ck-ok').focus(); } catch {}
+    try {
+      $('#ck-ok').focus();
+    } catch {}
   }
 }
 
@@ -931,12 +1017,16 @@ function ckHand(ang, r) {
 }
 
 function ckDraw() {
-  const ch = $('#ck-h'); if (ch) ch.textContent = ckPad(ckH);
-  const cm = $('#ck-m'); if (cm) cm.textContent = ckPad(ckM);
+  const ch = $('#ck-h');
+  if (ch) ch.textContent = ckPad(ckH);
+  const cm = $('#ck-m');
+  if (cm) cm.textContent = ckPad(ckM);
   if (ch) ch.classList.toggle('on', ckMode === 'h');
   if (cm) cm.classList.toggle('on', ckMode === 'm');
-  const fine = $('#ck-fine'); if (fine) fine.hidden = ckMode !== 'm';
-  const cx = 130, cy = 130;
+  const fine = $('#ck-fine');
+  if (fine) fine.hidden = ckMode !== 'm';
+  const cx = 130,
+    cy = 130;
   let h = '<circle cx="130" cy="130" r="124" class="ck-bg"/>';
 
   if (ckMode === 'h') {
@@ -964,10 +1054,10 @@ function ckDraw() {
 
 function ckPick(v) {
   if (ckMode === 'h') {
-    ckH = (+v) % 24;
+    ckH = +v % 24;
     ckMode = 'm';
   } else {
-    ckM = (+v) % 60;
+    ckM = +v % 60;
   }
   ckDraw();
   try {
@@ -976,50 +1066,87 @@ function ckPick(v) {
   } catch {}
 }
 
-$('#ck-face') && $('#ck-face').addEventListener('click', ev => {
-  const g = ev.target.closest('.ck-tap');
-  if (!g) return;
-  ckPick(g.dataset.v);
-});
-
-$('#ck-face') && $('#ck-face').addEventListener('keydown', ev => {
-  const g = ev.target.closest('.ck-tap');
-  if (!g) return;
-  if (ev.key === 'Enter' || ev.key === ' ') {
-    ev.preventDefault();
+$('#ck-face') &&
+  $('#ck-face').addEventListener('click', (ev) => {
+    const g = ev.target.closest('.ck-tap');
+    if (!g) return;
     ckPick(g.dataset.v);
-  }
-});
+  });
 
-$('#ck-h') && ($('#ck-h').onclick = () => { ckMode = 'h'; ckDraw(); });
-$('#ck-h') && $('#ck-h').addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ckMode = 'h'; ckDraw(); } });
-$('#ck-m') && ($('#ck-m').onclick = () => { ckMode = 'm'; ckDraw(); });
-$('#ck-m') && $('#ck-m').addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ckMode = 'm'; ckDraw(); } });
-$('#ck-dec') && ($('#ck-dec').onclick = () => { ckM = (ckM + 59) % 60; ckDraw(); });
-$('#ck-inc') && ($('#ck-inc').onclick = () => { ckM = (ckM + 1) % 60; ckDraw(); });
+$('#ck-face') &&
+  $('#ck-face').addEventListener('keydown', (ev) => {
+    const g = ev.target.closest('.ck-tap');
+    if (!g) return;
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault();
+      ckPick(g.dataset.v);
+    }
+  });
+
+$('#ck-h') &&
+  ($('#ck-h').onclick = () => {
+    ckMode = 'h';
+    ckDraw();
+  });
+$('#ck-h') &&
+  $('#ck-h').addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault();
+      ckMode = 'h';
+      ckDraw();
+    }
+  });
+$('#ck-m') &&
+  ($('#ck-m').onclick = () => {
+    ckMode = 'm';
+    ckDraw();
+  });
+$('#ck-m') &&
+  $('#ck-m').addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault();
+      ckMode = 'm';
+      ckDraw();
+    }
+  });
+$('#ck-dec') &&
+  ($('#ck-dec').onclick = () => {
+    ckM = (ckM + 59) % 60;
+    ckDraw();
+  });
+$('#ck-inc') &&
+  ($('#ck-inc').onclick = () => {
+    ckM = (ckM + 1) % 60;
+    ckDraw();
+  });
 $('#ck-cancel') && ($('#ck-cancel').onclick = () => ckClose(true));
-$('#ck-clear') && ($('#ck-clear').onclick = () => {
-  if (ckTarget) {
-    ckTarget.value = '';
-    ckTarget.dispatchEvent(new Event('input', { bubbles: true }));
-  }
-  ckClose(true);
-});
-$('#ck-ok') && ($('#ck-ok').onclick = () => {
-  if (ckTarget) {
-    ckTarget.value = ckPad(ckH) + ':' + ckPad(ckM);
-    ckTarget.dispatchEvent(new Event('input', { bubbles: true }));
-  }
-  ckClose(true);
-});
+$('#ck-clear') &&
+  ($('#ck-clear').onclick = () => {
+    if (ckTarget) {
+      ckTarget.value = '';
+      ckTarget.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    ckClose(true);
+  });
+$('#ck-ok') &&
+  ($('#ck-ok').onclick = () => {
+    if (ckTarget) {
+      ckTarget.value = ckPad(ckH) + ':' + ckPad(ckM);
+      ckTarget.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    ckClose(true);
+  });
 
 try {
-  $('#dlg-clock') && $('#dlg-clock').addEventListener('close', () => {
-    if (ckReturnFocus && document.contains(ckReturnFocus)) {
-      try { ckReturnFocus.focus(); } catch {}
-    }
-    ckReturnFocus = null;
-  });
+  $('#dlg-clock') &&
+    $('#dlg-clock').addEventListener('close', () => {
+      if (ckReturnFocus && document.contains(ckReturnFocus)) {
+        try {
+          ckReturnFocus.focus();
+        } catch {}
+      }
+      ckReturnFocus = null;
+    });
 } catch {}
 
 // Auth UI & Handlers
@@ -1037,61 +1164,89 @@ function updateAuthTabs() {
   if (btn) btn.textContent = authMode === 'signup' ? 'Creează cont' : 'Intră în cont';
 }
 
-$('#tab-signin') && ($('#tab-signin').onclick = () => { authMode = 'signin'; updateAuthTabs(); setAuthError(''); });
-$('#tab-signup') && ($('#tab-signup').onclick = () => { authMode = 'signup'; updateAuthTabs(); setAuthError(''); });
+$('#tab-signin') &&
+  ($('#tab-signin').onclick = () => {
+    authMode = 'signin';
+    updateAuthTabs();
+    setAuthError('');
+  });
+$('#tab-signup') &&
+  ($('#tab-signup').onclick = () => {
+    authMode = 'signup';
+    updateAuthTabs();
+    setAuthError('');
+  });
 
-$('#form-auth') && $('#form-auth').addEventListener('submit', async e => {
-  e.preventDefault();
-  setAuthError('');
-  const email = $('#auth-email')?.value.trim();
-  const pass = $('#auth-pass')?.value;
-  if (!email || !pass) return setAuthError('Completează emailul și parola.');
-  if (pass.length < 6) return setAuthError('Parola trebuie să aibă minim 6 caractere.');
-  const btn = $('#btn-auth');
-  const orig = btn ? btn.textContent : '';
-  if (btn) { btn.disabled = true; btn.textContent = 'Se procesează…'; }
-
-  try {
-    let res;
-    if (authMode === 'signup') {
-      res = await supabase.auth.signUp({ email, password: pass });
-      if (res.error) throw res.error;
-      if (!res.data.session) {
-        setAuthError('Cont creat! Verifică emailul dacă e nevoie, apoi intră în cont.');
-        authMode = 'signin';
-        updateAuthTabs();
-        return;
-      }
-    } else {
-      res = await supabase.auth.signInWithPassword({ email, password: pass });
-      if (res.error) throw res.error;
+$('#form-auth') &&
+  $('#form-auth').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    setAuthError('');
+    const email = $('#auth-email')?.value.trim();
+    const pass = $('#auth-pass')?.value;
+    if (!email || !pass) return setAuthError('Completează emailul și parola.');
+    if (pass.length < 6) return setAuthError('Parola trebuie să aibă minim 6 caractere.');
+    const btn = $('#btn-auth');
+    const orig = btn ? btn.textContent : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Se procesează…';
     }
-  } catch (err) {
-    setAuthError(err.message || 'Eroare la autentificare');
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = orig; }
-  }
-});
 
-$('#btn-google') && $('#btn-google').addEventListener('click', async () => {
-  setAuthError('');
-  const btn = $('#btn-google');
-  if (btn) btn.disabled = true;
-  try {
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + window.location.pathname } });
-    if (error) throw error;
-  } catch (err) {
-    setAuthError(err.message || 'Google login indisponibil. Activează providerul Google în Supabase Dashboard → Authentication → Providers.');
-    if (btn) btn.disabled = false;
-  }
-});
+    try {
+      let res;
+      if (authMode === 'signup') {
+        res = await supabase.auth.signUp({ email, password: pass });
+        if (res.error) throw res.error;
+        if (!res.data.session) {
+          setAuthError('Cont creat! Verifică emailul dacă e nevoie, apoi intră în cont.');
+          authMode = 'signin';
+          updateAuthTabs();
+          return;
+        }
+      } else {
+        res = await supabase.auth.signInWithPassword({ email, password: pass });
+        if (res.error) throw res.error;
+      }
+    } catch (err) {
+      setAuthError(err.message || 'Eroare la autentificare');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = orig;
+      }
+    }
+  });
 
-$('#btn-logout') && $('#btn-logout').addEventListener('click', async () => {
-  await supabase.auth.signOut();
-});
+$('#btn-google') &&
+  $('#btn-google').addEventListener('click', async () => {
+    setAuthError('');
+    const btn = $('#btn-google');
+    if (btn) btn.disabled = true;
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin + window.location.pathname },
+      });
+      if (error) throw error;
+    } catch (err) {
+      setAuthError(
+        err.message ||
+          'Google login indisponibil. Activează providerul Google în Supabase Dashboard → Authentication → Providers.',
+      );
+      if (btn) btn.disabled = false;
+    }
+  });
+
+$('#btn-logout') &&
+  $('#btn-logout').addEventListener('click', async () => {
+    await supabase.auth.signOut();
+  });
 
 function showAuthView() {
-  const a = $('#auth-card'), c = $('#app-content'), l = $('#auth-loading'), ub = $('#user-bar');
+  const a = $('#auth-card'),
+    c = $('#app-content'),
+    l = $('#auth-loading'),
+    ub = $('#user-bar');
   if (a) a.hidden = false;
   if (c) c.hidden = true;
   if (l) l.hidden = true;
@@ -1099,7 +1254,11 @@ function showAuthView() {
 }
 
 function showAppView(user) {
-  const a = $('#auth-card'), c = $('#app-content'), l = $('#auth-loading'), ub = $('#user-bar'), ue = $('#user-email');
+  const a = $('#auth-card'),
+    c = $('#app-content'),
+    l = $('#auth-loading'),
+    ub = $('#user-bar'),
+    ue = $('#user-email');
   if (a) a.hidden = true;
   if (c) c.hidden = false;
   if (l) l.hidden = true;
@@ -1120,7 +1279,11 @@ async function handleOAuthCode() {
         setAuthError(error.message || 'Autentificarea Google a eșuat.');
       }
       url.searchParams.delete('code');
-      window.history.replaceState({}, document.title, url.pathname + url.search + window.location.hash);
+      window.history.replaceState(
+        {},
+        document.title,
+        url.pathname + url.search + window.location.hash,
+      );
     } catch (e) {
       console.warn('exchange failed', e);
       setAuthError(e.message || 'Autentificarea Google a eșuat.');
@@ -1132,7 +1295,9 @@ async function initAuth() {
   updateAuthTabs();
 
   supabase.auth.onAuthStateChange((event, session) => {
-    setTimeout(() => { handleAuthEvent(event, session); }, 0);
+    setTimeout(() => {
+      handleAuthEvent(event, session);
+    }, 0);
   });
 
   const url = new URL(window.location.href);
@@ -1149,7 +1314,11 @@ async function initAuth() {
       url.searchParams.delete('error');
       url.searchParams.delete('error_code');
       url.searchParams.delete('error_description');
-      window.history.replaceState({}, document.title, url.pathname + url.search + window.location.hash);
+      window.history.replaceState(
+        {},
+        document.title,
+        url.pathname + url.search + window.location.hash,
+      );
     } catch {}
     return;
   }
@@ -1159,11 +1328,17 @@ async function initAuth() {
     try {
       const { data } = await supabase.auth.getSession();
       currentUser = data.session?.user || null;
-      if (!currentUser) { showAuthView(); return; }
+      if (!currentUser) {
+        showAuthView();
+        return;
+      }
       migrateLegacyScope();
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise((r) => setTimeout(r, 500));
       const c = $('#app-content');
-      if (c && c.hidden) { showAppView(currentUser); await cloudPull(); }
+      if (c && c.hidden) {
+        showAppView(currentUser);
+        await cloudPull();
+      }
     } catch {
       showAuthView();
     }
@@ -1190,7 +1365,9 @@ async function handleAuthEvent(event, session) {
     await cloudPull();
   } else {
     monday = getMonday(new Date());
-    try { render(); } catch {}
+    try {
+      render();
+    } catch {}
     showAuthView();
   }
 }
