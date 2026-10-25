@@ -405,7 +405,13 @@ function render() {
           </div>
         </div>
         <div style="margin-top:8px">
-          <input type="text" class="in-n" placeholder="📝 Note / Proiect (opțional)" value="${esc(v.n || '')}" maxlength="200" style="font-size:13px;padding:8px 10px">
+          <select class="in-n" style="width:100%;font-size:13px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text)">
+            <option value="">📍 Alege locul de muncă (opțional)</option>
+            <option value="MultiGrow"${v.n === 'MultiGrow' ? ' selected' : ''}>MultiGrow</option>
+            <option value="Multifresa Grashoek"${v.n === 'Multifresa Grashoek' ? ' selected' : ''}>Multifresa Grashoek</option>
+            <option value="Multifresa Meijel"${v.n === 'Multifresa Meijel' ? ' selected' : ''}>Multifresa Meijel</option>
+            ${v.n && !['MultiGrow', 'Multifresa Grashoek', 'Multifresa Meijel'].includes(v.n) ? `<option value="${esc(v.n)}" selected>${esc(v.n)}</option>` : ''}
+          </select>
         </div>
       </div>
     `;
@@ -431,10 +437,10 @@ function render() {
     saveWeek();
   }));
 
-  daysEl.querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => {
-    recalc();
-    saveWeek();
-  }));
+  daysEl.querySelectorAll('input, select').forEach(inp => {
+    inp.addEventListener('input', () => { recalc(); saveWeek(); });
+    inp.addEventListener('change', () => { recalc(); saveWeek(); });
+  });
 
   daysEl.querySelectorAll('.in-s,.in-e').forEach(inp => {
     inp.addEventListener('click', () => openClock(inp));
@@ -670,7 +676,7 @@ $('#btn-edit-target') && ($('#btn-edit-target').onclick = () => {
 
 $('#btn-csv') && ($('#btn-csv').onclick = () => {
   const m = new Date(monday);
-  let csv = 'Zi,Data,Status,Inceput,Pauza_min,Sfarsit,Ore,Note\n';
+  let csv = 'Zi,Data,Status,Inceput,Pauza_min,Sfarsit,Ore,Loc_Munca\n';
   for (let i = 0; i < 7; i++) {
     const card = document.querySelectorAll('.day')[i];
     const raw = {
@@ -773,7 +779,7 @@ $('#btn-print') && ($('#btn-print').onclick = () => {
     tot += min;
     const dt = new Date(m);
     dt.setDate(dt.getDate() + i);
-    const noteText = v.n ? `<br><small style="color:#666">📝 ${esc(v.n)}</small>` : '';
+    const noteText = v.n ? `<br><small style="color:#666">📍 ${esc(v.n)}</small>` : '';
     rows += `<tr><td>${esc(DAYS[i])} ${esc(fmtDate(dt))}${noteText}</td><td>${esc(STATUS[st])}</td><td>${esc(s)}</td><td>${esc(p)}</td><td>${esc(e)}</td><td>${min > 0 ? esc(roDec(min / 60) + ' (' + hm(min) + ')') : '—'}</td></tr>`;
   }
   const email = currentUser && currentUser.email ? esc(currentUser.email) : '';
@@ -782,7 +788,7 @@ $('#btn-print') && ($('#btn-print').onclick = () => {
 });
 
 // Theme picker
-const THEMES = ['dark', 'light', 'ocean', 'forest', 'berry', 'sunset', 'midnight'];
+const THEMES = ['dark', 'light'];
 
 function setTheme(t) {
   if (!THEMES.includes(t)) t = 'dark';
@@ -800,8 +806,7 @@ function setTheme(t) {
     btn.setAttribute('aria-pressed', active ? 'true' : 'false');
   });
   const iconMap = {
-    dark: '🌙', light: '☀️', ocean: '🌊', forest: '🌲',
-    berry: '🍇', sunset: '🌅', midnight: '🖤'
+    dark: '🌙', light: '☀️'
   };
   const main = $('#btn-theme-pick');
   if (main) main.textContent = iconMap[t] || '🎨';

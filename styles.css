@@ -21,66 +21,6 @@
   --line: #e2e8f0;
 }
 
-[data-theme="ocean"] {
-  --bg: #0c4a6e;
-  --bg2: #075985;
-  --card: #075985;
-  --text: #e0f2fe;
-  --muted: #7dd3fc;
-  --acc: #22d3ee;
-  --ok: #34d399;
-  --line: #0e7490;
-  --err: #fb7185;
-}
-
-[data-theme="forest"] {
-  --bg: #064e3b;
-  --bg2: #065f46;
-  --card: #065f46;
-  --text: #d1fae5;
-  --muted: #6ee7b7;
-  --acc: #34d399;
-  --ok: #4ade80;
-  --line: #047857;
-  --err: #fca5a5;
-}
-
-[data-theme="berry"] {
-  --bg: #4a044e;
-  --bg2: #581c87;
-  --card: #581c87;
-  --text: #f5d0fe;
-  --muted: #d8b4fe;
-  --acc: #c084fc;
-  --ok: #86efac;
-  --line: #701a75;
-  --err: #fda4af;
-}
-
-[data-theme="sunset"] {
-  --bg: #7c2d12;
-  --bg2: #9a3412;
-  --card: #9a3412;
-  --text: #ffedd5;
-  --muted: #fdba74;
-  --acc: #fb923c;
-  --ok: #4ade80;
-  --line: #c2410c;
-  --err: #fca5a5;
-}
-
-[data-theme="midnight"] {
-  --bg: #0a0a0f;
-  --bg2: #12121a;
-  --card: #12121a;
-  --text: #e2e8f0;
-  --muted: #71717a;
-  --acc: #818cf8;
-  --ok: #22c55e;
-  --line: #27272a;
-  --err: #f87171;
-}
-
 * {
   box-sizing: border-box;
 }
@@ -105,13 +45,12 @@ main {
 .topbar {
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: 1000;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
-  backdrop-filter: blur(10px);
+  background: var(--bg);
   border-bottom: 1px solid var(--line);
   gap: 12px;
 }
@@ -481,7 +420,7 @@ h2 {
   color: color-mix(in srgb, var(--text) 70%, transparent);
 }
 
-input {
+input, select {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
@@ -492,7 +431,7 @@ input {
   transition: border 0.2s ease, box-shadow 0.2s ease;
 }
 
-input:focus {
+input:focus, select:focus {
   outline: none;
   border-color: var(--acc);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--acc) 30%, transparent);
@@ -971,7 +910,7 @@ input:focus {
   position: absolute;
   top: 42px;
   right: 0;
-  z-index: 20;
+  z-index: 2000;
   background: var(--bg2);
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -979,7 +918,7 @@ input:focus {
   display: grid;
   gap: 3px;
   min-width: 170px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   animation: dropIn 0.15s ease;
 }
 
