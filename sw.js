@@ -6,7 +6,7 @@ const ASSETS = [
   './app.js?v=39',
   './vendor/supabase.esm.js',
   './manifest.webmanifest',
-  './icon.svg',
+  './favicon.png',
   './icon-192.png',
   './icon-512.png',
   './icon-maskable-512.png',
