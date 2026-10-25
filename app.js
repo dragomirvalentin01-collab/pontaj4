@@ -751,7 +751,90 @@ function showAppView(user){
   if(ub) ub.hidden=false;
   if(ue) ue.textContent=user?.email||'';
   const av=$('#user-avatar'); if(av) av.textContent=((user?.email||'?').trim().charAt(0)||'?').toUpperCase();
+  checkLegacyImportData();
 }
+
+function checkLegacyImportData(){
+  const card=$('#card-import-data');
+  if(!card) return;
+  const currentScope=lsScope();
+  const foreignWeeks=[];
+  const keys=Object.keys(localStorage);
+
+  for(const k of keys){
+    if(!k || !k.startsWith('pontaj:')) continue;
+    if(k.startsWith(currentScope)) continue;
+    if(k===LS_OWNER || k===K_THEME) continue;
+
+    // Verificam daca e o cheie de saptamana dintr-un alt scope
+    const parts=k.split(':');
+    if(parts.length===3 && isWeekKey(parts[2])){
+      const wk=parts[2];
+      // Verificam daca saptamana nu exista deja in scope-ul curent
+      const curData=localStorage.getItem(currentScope+wk);
+      if(!curData){
+        foreignWeeks.push({ key: k, week: wk });
+      }
+    } else if(parts.length===2 && isWeekKey(parts[1])){
+      // Date foarte vechi nescopate
+      const wk=parts[1];
+      const curData=localStorage.getItem(currentScope+wk);
+      if(!curData){
+        foreignWeeks.push({ key: k, week: wk });
+      }
+    }
+  }
+
+  card.hidden = foreignWeeks.length === 0;
+}
+
+$('#btn-close-import')&&($('#btn-close-import').onclick=()=>{
+  const card=$('#card-import-data'); if(card) card.hidden=true;
+});
+
+$('#btn-import-data')&&($('#btn-import-data').onclick=async()=>{
+  const card=$('#card-import-data');
+  const btn=$('#btn-import-data');
+  if(btn) btn.disabled=true;
+  const currentScope=lsScope();
+  const activeIdx=getIndex();
+  const importedWeeks=[];
+  const keys=Object.keys(localStorage);
+
+  for(const k of keys){
+    if(!k || !k.startsWith('pontaj:')) continue;
+    if(k.startsWith(currentScope)) continue;
+    if(k===LS_OWNER || k===K_THEME) continue;
+
+    const parts=k.split(':');
+    let wk=null;
+    if(parts.length===3 && isWeekKey(parts[2])){
+      wk=parts[2];
+    } else if(parts.length===2 && isWeekKey(parts[1])){
+      wk=parts[1];
+    }
+    if(wk){
+      const val=localStorage.getItem(k);
+      if(val){
+        localStorage.setItem(currentScope+wk, val);
+        localStorage.setItem(currentScope+wk+':ts', String(Date.now()));
+        if(!activeIdx.includes(wk)) activeIdx.push(wk);
+        if(!importedWeeks.includes(wk)) importedWeeks.push(wk);
+      }
+    }
+  }
+
+  activeIdx.sort().reverse();
+  localStorage.setItem(kIndex(), JSON.stringify(activeIdx.slice(0, 52)));
+
+  if(card) card.hidden=true;
+  render();
+
+  // Trimitem saptamanile importate in cloud pentru noul cont
+  for(const wk of importedWeeks){
+    await cloudPushWeek(wk);
+  }
+});
 
 async function handleOAuthCode(){
   // Exchange pentru ?code= din redirectul Google OAuth. Curata URL-ul dupa.

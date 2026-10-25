@@ -61,6 +61,19 @@
 
   <!-- App content - vizibil doar când ești logat -->
   <div id="app-content" hidden>
+    <section id="card-import-data" class="card" style="background:var(--card-bg);border:1px solid var(--acc);margin-bottom:12px" hidden>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div>
+          <h3 style="margin:0 0 4px 0;font-size:15px">📦 Date găsite de la alt cont / sesiune anterioară</h3>
+          <p class="muted small" style="margin:0">Am găsit pontaje salvate pe acest telefon din contul tău anterior. Dorești să le copiezi în contul curent?</p>
+        </div>
+        <button id="btn-close-import" class="btn small ghost" style="padding:2px 8px">✕</button>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button id="btn-import-data" class="btn primary small">📋 Copiază datele în acest cont</button>
+      </div>
+    </section>
+
     <section class="week-nav card">
       <button id="btn-prev" class="btn" aria-label="Săptămâna anterioară">‹</button>
       <div class="week-nav-mid">
