@@ -718,6 +718,18 @@ $('#btn-google')&&$('#btn-google').addEventListener('click', async ()=>{
   }
 });
 
+$('#btn-facebook')&&$('#btn-facebook').addEventListener('click', async ()=>{
+  setAuthError('');
+  const btn=$('#btn-facebook'); if(btn) btn.disabled=true;
+  try{
+    const { error } = await supabase.auth.signInWithOAuth({ provider:'facebook', options:{ redirectTo: window.location.origin + window.location.pathname } });
+    if(error) throw error;
+  }catch(err){
+    setAuthError(err.message||'Facebook login indisponibil. Activează providerul Facebook în Supabase Dashboard → Authentication → Providers.');
+    if(btn) btn.disabled=false;
+  }
+});
+
 $('#btn-logout')&&$('#btn-logout').addEventListener('click', async ()=>{
   await supabase.auth.signOut();
   // cache-ul local ramane, dar e namespocat per cont (pontaj:<userId>:),
